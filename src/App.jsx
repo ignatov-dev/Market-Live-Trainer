@@ -1,12 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './styles.css';
-import { useLocalStorage } from 'usehooks-ts';
 import { motion, useScroll, useSpring, useTransform } from 'framer-motion';
 import { FiArrowRight } from 'react-icons/fi';
 import { LuRotateCcw } from 'react-icons/lu';
 import Tabs from './components/Tabs/Tabs';
 import Modal from './components/Modal/Modal';
 import BracketField from './components/BracketField/BracketField';
+import {
+  createPosition as createBackendPosition,
+  closePosition as closeBackendPosition,
+  listClosedPositions as listBackendClosedPositions,
+  listPositions as listBackendPositions,
+  updatePositionBrackets as updateBackendPositionBrackets,
+} from './integration/positionsApi';
+import { usePositionEvents } from './integration/usePositionEvents';
 
 const INITIAL_BALANCE = 10000;
 const FEE_RATE = 0.0004;
@@ -114,6 +121,15 @@ const PAIRS = [
   },
 ];
 const PRODUCT_TO_PAIR = Object.fromEntries(PAIRS.map((item) => [item.coinbaseProduct, item.id]));
+const PAIR_TO_PRODUCT = Object.fromEntries(PAIRS.map((item) => [item.id, item.coinbaseProduct]));
+const BACKEND_USER_ID = import.meta.env.VITE_BACKEND_USER_ID ?? 'demo-user';
+
+function buildBackendPositionKey(symbol, side, entryPrice, takeProfit, stopLoss) {
+  const entry = Number(entryPrice).toFixed(8);
+  const tp = takeProfit === null ? 'null' : Number(takeProfit).toFixed(8);
+  const sl = stopLoss === null ? 'null' : Number(stopLoss).toFixed(8);
+  return `${symbol}|${side}|${entry}|${tp}|${sl}`;
+}
 
 function getTimeframeById(timeframeId) {
   return TIMEFRAMES.find((item) => item.id === timeframeId) ?? TIMEFRAMES[1];
@@ -789,36 +805,6 @@ function createSession(candles = []) {
   };
 }
 
-function normalizeStoredOrdersSnapshot(value) {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-
-  const balance = Number(value.balance);
-  const sequence = Number(value.sequence);
-  const positions = Array.isArray(value.positions)
-    ? value.positions.filter((item) => typeof item?.pair === 'string' && item.pair.length > 0)
-    : [];
-  const pendingOrders = Array.isArray(value.pendingOrders)
-    ? value.pendingOrders.filter((item) => typeof item?.pair === 'string' && item.pair.length > 0)
-    : [];
-  const closedTrades = Array.isArray(value.closedTrades)
-    ? value.closedTrades.filter((item) => typeof item?.pair === 'string' && item.pair.length > 0)
-    : [];
-
-  if (!Number.isFinite(balance) || !Number.isFinite(sequence) || sequence < 1) {
-    return null;
-  }
-
-  return {
-    balance,
-    sequence,
-    positions,
-    pendingOrders,
-    closedTrades,
-  };
-}
-
 function applyLiveTickToCandles(candles, tick, timeframeId) {
   const tradePrice = Number(tick.price);
   const tradeSize = Number(tick.size || 0);
@@ -1031,6 +1017,7 @@ function openPosition(session, candle, order, marksByPair = {}) {
 
   const position = {
     id: session.sequence,
+    backendPositionId: null,
     pair,
     side,
     qty,
@@ -1076,6 +1063,8 @@ function closePosition(session, candle, positionId, reason, forcedPrice = null) 
 
   const closedTrade = {
     id: session.sequence,
+    positionId: position.id,
+    backendPositionId: position.backendPositionId ?? null,
     pair: position.pair,
     side: position.side,
     qty: position.qty,
@@ -1161,55 +1150,6 @@ function evaluatePendingOrders(session, candle, pairId, marksByPair = {}) {
     ...nextSession,
     pendingOrders: remainingOrders,
   };
-}
-
-function evaluateRiskExits(session, candle, pairId) {
-  let next = session;
-
-  for (const position of session.positions) {
-    if (position.pair !== pairId) {
-      continue;
-    }
-
-    let exitPrice = null;
-    let reason = null;
-
-    if (position.side === 'long') {
-      const stopHit = position.stopLoss !== null && candle.low <= position.stopLoss;
-      const tpHit = position.takeProfit !== null && candle.high >= position.takeProfit;
-
-      if (stopHit && tpHit) {
-        exitPrice = position.stopLoss;
-        reason = 'stop-loss and take-profit touched in same candle (conservative stop fill)';
-      } else if (stopHit) {
-        exitPrice = position.stopLoss;
-        reason = 'stop-loss hit';
-      } else if (tpHit) {
-        exitPrice = position.takeProfit;
-        reason = 'take-profit hit';
-      }
-    } else {
-      const stopHit = position.stopLoss !== null && candle.high >= position.stopLoss;
-      const tpHit = position.takeProfit !== null && candle.low <= position.takeProfit;
-
-      if (stopHit && tpHit) {
-        exitPrice = position.stopLoss;
-        reason = 'stop-loss and take-profit touched in same candle (conservative stop fill)';
-      } else if (stopHit) {
-        exitPrice = position.stopLoss;
-        reason = 'stop-loss hit';
-      } else if (tpHit) {
-        exitPrice = position.takeProfit;
-        reason = 'take-profit hit';
-      }
-    }
-
-    if (exitPrice !== null) {
-      next = closePosition(next, candle, position.id, reason, exitPrice);
-    }
-  }
-
-  return next;
 }
 
 function getMetrics(session, marksByPair = {}) {
@@ -1973,44 +1913,26 @@ function ChartSkeleton() {
 export default function App() {
   const coinbaseCacheRef = useRef({});
   const newsCacheRef = useRef({});
-  const lastPersistedPayloadRef = useRef('');
   const [pair, setPair] = useState(PAIRS[0].id);
   const [timeframeId, setTimeframeId] = useState(TIMEFRAMES[1].id);
   const [datasets, setDatasets] = useState({});
   const [newsByPair, setNewsByPair] = useState({});
-  const [storedSession, setStoredSession, removeStoredSession] = useLocalStorage('market-live-session-v1', null);
   const [datasetRevision, setDatasetRevision] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [newsStatus, setNewsStatus] = useState('');
+  const [isBackendHydrated, setIsBackendHydrated] = useState(false);
+  const [backendClosedPositions, setBackendClosedPositions] = useState([]);
+  const [isLoadingBackendClosedPositions, setIsLoadingBackendClosedPositions] = useState(false);
+  const [backendClosedPositionsError, setBackendClosedPositionsError] = useState('');
+  const [backendSyncRevision, setBackendSyncRevision] = useState(0);
   const [resizeToken, setResizeToken] = useState(0);
   const pairMeta = PAIRS.find((item) => item.id === pair) ?? PAIRS[0];
   const timeframe = getTimeframeById(timeframeId);
   const candles = datasets[pair] ?? [];
   const newsItems = newsByPair[pair] ?? [];
   const hasCandles = candles.length > 0;
-  const [session, setSession] = useState(() => {
-    const restored = normalizeStoredOrdersSnapshot(storedSession);
-    if (!restored) {
-      return createSession();
-    }
-
-    const fresh = createSession();
-    fresh.balance = restored.balance;
-    fresh.sequence = Math.max(1, restored.sequence);
-    fresh.positions = restored.positions;
-    fresh.pendingOrders = restored.pendingOrders;
-    fresh.closedTrades = restored.closedTrades;
-    fresh.timeline = [
-      buildTimelineEvent(
-        fresh.replayIndex,
-        Date.now(),
-        `Session restored from local storage (${restored.positions.length} open, ${restored.pendingOrders.length} pending).`,
-      ),
-    ];
-    fresh.equityHistory = [{ index: fresh.replayIndex, equity: restored.balance }];
-    return fresh;
-  });
+  const [session, setSession] = useState(() => createSession());
   const [ticket, setTicket] = useState(() => defaultTicket(candles[candles.length - 1]?.close));
   const [ticketPreviewSide, setTicketPreviewSide] = useState('buy');
   const [coachReport, setCoachReport] = useState(null);
@@ -2045,6 +1967,13 @@ export default function App() {
   const patternNotificationTimersRef = useRef(new Map());
   const processedPatternCandleTsRef = useRef({});
   const processedSessionCandleTsRef = useRef({});
+  const backendPositionIdsRef = useRef(new Map());
+  const backendOpenSyncInFlightRef = useRef(new Set());
+  const backendCloseSyncInFlightRef = useRef(new Set());
+  const backendCloseSyncedTradeIdsRef = useRef(new Set());
+  const backendClosedLocalIdsRef = useRef(new Set());
+  const datasetsRef = useRef({});
+  const currentCandleRef = useRef(null);
 
   const fallbackCandle = useMemo(
     () => ({ index: 0, timestamp: Date.now(), open: null, high: null, low: null, close: null, volume: 0 }),
@@ -2059,6 +1988,8 @@ export default function App() {
     : 0;
   const currentCandle = hasCandles ? candles[safeReplayIndex] : fallbackCandle;
   const currentPrice = currentCandle.close;
+  datasetsRef.current = datasets;
+  currentCandleRef.current = currentCandle;
   const marksByPair = useMemo(() => getLatestMarksByPair(datasets), [datasets]);
   const metrics = useMemo(() => getMetrics(session, marksByPair), [session, marksByPair]);
   const currentPairPositions = useMemo(
@@ -2069,6 +2000,15 @@ export default function App() {
     () => session.closedTrades.filter((item) => item.pair === pair),
     [session.closedTrades, pair],
   );
+  const localClosedTradesByBackendId = useMemo(() => {
+    const map = new Map();
+    for (const trade of session.closedTrades) {
+      if (typeof trade.backendPositionId === 'string' && trade.backendPositionId.length > 0) {
+        map.set(trade.backendPositionId, trade);
+      }
+    }
+    return map;
+  }, [session.closedTrades]);
   const editingPosition = useMemo(
     () => session.positions.find((item) => item.id === positionBracketEditor.positionId) ?? null,
     [session.positions, positionBracketEditor.positionId],
@@ -2110,6 +2050,60 @@ export default function App() {
     viewSize: chartViewSize,
     timeframeId,
   };
+
+  const getLatestCandleForPair = useCallback(
+    (pairId) => {
+      const series = datasetsRef.current[pairId] ?? [];
+      if (Array.isArray(series) && series.length > 0) {
+        return series[series.length - 1];
+      }
+      return currentCandleRef.current ?? fallbackCandle;
+    },
+    [fallbackCandle],
+  );
+
+  const handleBackendPositionClosed = useCallback(
+    ({ position }) => {
+      const backendPositionId = position?.id;
+      if (typeof backendPositionId !== 'string' || backendPositionId.length === 0) {
+        return;
+      }
+
+      const forcedPrice = Number(position.closePrice);
+      const closeReason = position.closeReason
+        ? `backend ${String(position.closeReason).replace('_', '-')}`
+        : 'backend close';
+
+      setSession((previous) => {
+        const localPosition = previous.positions.find((item) => {
+          if (item.backendPositionId === backendPositionId) {
+            return true;
+          }
+          const candidateBackendId = backendPositionIdsRef.current.get(String(item.id));
+          return candidateBackendId === backendPositionId;
+        });
+        if (!localPosition) {
+          return previous;
+        }
+
+        backendClosedLocalIdsRef.current.add(String(localPosition.id));
+        const closeCandle = getLatestCandleForPair(localPosition.pair);
+        return closePosition(
+          previous,
+          closeCandle,
+          localPosition.id,
+          closeReason,
+          Number.isFinite(forcedPrice) && forcedPrice > 0 ? forcedPrice : null,
+        );
+      });
+    },
+    [getLatestCandleForPair],
+  );
+
+  usePositionEvents({
+    userId: BACKEND_USER_ID,
+    onClosed: handleBackendPositionClosed,
+  });
 
   function redrawChartWithCurrentState() {
     const state = chartDrawStateRef.current;
@@ -2244,12 +2238,6 @@ export default function App() {
       }),
     );
   }
-
-  useEffect(() => {
-    if (storedSession !== null && typeof storedSession !== 'object') {
-      removeStoredSession();
-    }
-  }, [storedSession, removeStoredSession]);
 
   useEffect(
     () => () => {
@@ -2420,36 +2408,305 @@ export default function App() {
   }, [pair, timeframe.label, timeframeId, datasetRevision]);
 
   useEffect(() => {
-    const snapshot = {
-      balance: session.balance,
-      sequence: session.sequence,
-      positions: session.positions,
-      pendingOrders: session.pendingOrders,
-      closedTrades: session.closedTrades,
-    };
+    let isCancelled = false;
 
-    const nextHash = JSON.stringify(snapshot);
-    if (nextHash === lastPersistedPayloadRef.current) {
+    async function hydrateBackendOpenPositions() {
+      try {
+        const backendOpenPositions = await listBackendPositions(BACKEND_USER_ID, 'open');
+        if (isCancelled || !Array.isArray(backendOpenPositions)) {
+          return;
+        }
+
+        const backendByKey = new Map();
+        for (const backendPosition of backendOpenPositions) {
+          const key = buildBackendPositionKey(
+            backendPosition.symbol,
+            backendPosition.side,
+            backendPosition.entryPrice,
+            backendPosition.takeProfit,
+            backendPosition.stopLoss,
+          );
+          const existing = backendByKey.get(key) ?? [];
+          existing.push(backendPosition);
+          backendByKey.set(key, existing);
+        }
+
+        setSession((previous) => {
+          if (!Array.isArray(previous.positions) || previous.positions.length === 0) {
+            return previous;
+          }
+
+          let changed = false;
+          const nextPositions = previous.positions.map((position) => {
+            const localPositionId = String(position.id);
+
+            if (typeof position.backendPositionId === 'string' && position.backendPositionId.length > 0) {
+              backendPositionIdsRef.current.set(localPositionId, position.backendPositionId);
+              return position;
+            }
+
+            const symbol = PAIR_TO_PRODUCT[position.pair];
+            if (typeof symbol !== 'string' || symbol.length === 0) {
+              return position;
+            }
+
+            const matchKey = buildBackendPositionKey(
+              symbol,
+              position.side,
+              position.entryPrice,
+              position.takeProfit,
+              position.stopLoss,
+            );
+            const bucket = backendByKey.get(matchKey);
+            if (!Array.isArray(bucket) || bucket.length === 0) {
+              return position;
+            }
+
+            const matchedBackendPosition = bucket.shift();
+            if (!matchedBackendPosition) {
+              return position;
+            }
+
+            backendPositionIdsRef.current.set(localPositionId, matchedBackendPosition.id);
+            changed = true;
+            return {
+              ...position,
+              backendPositionId: matchedBackendPosition.id,
+            };
+          });
+
+          if (!changed) {
+            return previous;
+          }
+
+          return {
+            ...previous,
+            positions: nextPositions,
+          };
+        });
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('Failed to hydrate backend positions', error);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsBackendHydrated(true);
+        }
+      }
+    }
+
+    void hydrateBackendOpenPositions();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isBackendHydrated) {
       return;
     }
-    lastPersistedPayloadRef.current = nextHash;
 
-    setStoredSession(snapshot);
-    window.postMessage(
-      {
-        type: 'MARKET_LIVE_SESSION_SYNC',
-        payload: snapshot,
-      },
-      window.location.origin,
+    let isCancelled = false;
+
+    async function loadBackendClosedPositions() {
+      setIsLoadingBackendClosedPositions(true);
+      try {
+        const closedPositions = await listBackendClosedPositions(BACKEND_USER_ID);
+        if (isCancelled) {
+          return;
+        }
+
+        setBackendClosedPositions(Array.isArray(closedPositions) ? closedPositions : []);
+        setBackendClosedPositionsError('');
+      } catch (error) {
+        if (!isCancelled) {
+          setBackendClosedPositionsError(error instanceof Error ? error.message : 'Failed to load closed positions.');
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingBackendClosedPositions(false);
+        }
+      }
+    }
+
+    void loadBackendClosedPositions();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isBackendHydrated, session.closedTrades.length]);
+
+  useEffect(() => {
+    if (!isBackendHydrated) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    async function syncOpenedPositions() {
+      for (const position of session.positions) {
+        if (isCancelled) {
+          return;
+        }
+
+        const localPositionId = String(position.id);
+        const persistedBackendPositionId =
+          typeof position.backendPositionId === 'string' && position.backendPositionId.length > 0
+            ? position.backendPositionId
+            : null;
+
+        if (persistedBackendPositionId) {
+          if (!backendPositionIdsRef.current.has(localPositionId)) {
+            backendPositionIdsRef.current.set(localPositionId, persistedBackendPositionId);
+          }
+          continue;
+        }
+
+        if (backendPositionIdsRef.current.has(localPositionId)) {
+          continue;
+        }
+
+        if (backendOpenSyncInFlightRef.current.has(localPositionId)) {
+          continue;
+        }
+
+        const symbol = PAIR_TO_PRODUCT[position.pair];
+        if (typeof symbol !== 'string' || symbol.length === 0) {
+          continue;
+        }
+
+        backendOpenSyncInFlightRef.current.add(localPositionId);
+
+        try {
+          const created = await createBackendPosition({
+            userId: BACKEND_USER_ID,
+            symbol,
+            side: position.side,
+            entryPrice: position.entryPrice,
+            takeProfit: position.takeProfit,
+            stopLoss: position.stopLoss,
+          });
+
+          if (!isCancelled) {
+            backendPositionIdsRef.current.set(localPositionId, created.id);
+            setSession((previous) => ({
+              ...previous,
+              positions: previous.positions.map((item) =>
+                String(item.id) === localPositionId
+                  ? { ...item, backendPositionId: created.id }
+                  : item
+              ),
+            }));
+            setBackendSyncRevision((value) => value + 1);
+          }
+        } catch (error) {
+          if (!isCancelled) {
+            console.error('Failed to create backend position', error);
+          }
+        } finally {
+          backendOpenSyncInFlightRef.current.delete(localPositionId);
+        }
+      }
+    }
+
+    void syncOpenedPositions();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [session.positions, backendSyncRevision, isBackendHydrated]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function syncClosedPositions() {
+      for (const trade of session.closedTrades) {
+        if (isCancelled) {
+          return;
+        }
+
+        const tradeId = String(trade.id);
+        if (backendCloseSyncedTradeIdsRef.current.has(tradeId)) {
+          continue;
+        }
+
+        if (backendCloseSyncInFlightRef.current.has(tradeId)) {
+          continue;
+        }
+
+        const localPositionId = String(trade.positionId ?? '');
+        if (localPositionId.length === 0) {
+          backendCloseSyncedTradeIdsRef.current.add(tradeId);
+          continue;
+        }
+
+        if (backendClosedLocalIdsRef.current.has(localPositionId)) {
+          backendClosedLocalIdsRef.current.delete(localPositionId);
+          backendPositionIdsRef.current.delete(localPositionId);
+          backendCloseSyncedTradeIdsRef.current.add(tradeId);
+          continue;
+        }
+
+        const backendPositionIdFromTrade =
+          typeof trade.backendPositionId === 'string' && trade.backendPositionId.length > 0
+            ? trade.backendPositionId
+            : null;
+        const backendPositionId = backendPositionIdFromTrade ?? backendPositionIdsRef.current.get(localPositionId);
+        if (!backendPositionId) {
+          continue;
+        }
+
+        backendCloseSyncInFlightRef.current.add(tradeId);
+
+        try {
+          await closeBackendPosition(BACKEND_USER_ID, backendPositionId, trade.exitPrice);
+          if (!isCancelled) {
+            backendPositionIdsRef.current.delete(localPositionId);
+            backendCloseSyncedTradeIdsRef.current.add(tradeId);
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('already closed') || errorMessage.includes('not found')) {
+            backendPositionIdsRef.current.delete(localPositionId);
+            backendCloseSyncedTradeIdsRef.current.add(tradeId);
+          } else if (!isCancelled) {
+            console.error('Failed to close backend position', error);
+          }
+        } finally {
+          backendCloseSyncInFlightRef.current.delete(tradeId);
+        }
+      }
+    }
+
+    void syncClosedPositions();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [session.closedTrades, backendSyncRevision]);
+
+  useEffect(() => {
+    const hasUnsyncedOpen = session.positions.some(
+      (position) =>
+        typeof position.backendPositionId !== 'string' || position.backendPositionId.length === 0,
     );
-  }, [
-    session.balance,
-    session.sequence,
-    session.positions,
-    session.pendingOrders,
-    session.closedTrades,
-    setStoredSession,
-  ]);
+    const hasUnsyncedClosed = session.closedTrades.some(
+      (trade) => !backendCloseSyncedTradeIdsRef.current.has(String(trade.id)),
+    );
+
+    if (!hasUnsyncedOpen && !hasUnsyncedClosed) {
+      return undefined;
+    }
+
+    const retryTimer = window.setTimeout(() => {
+      setBackendSyncRevision((value) => value + 1);
+    }, 5000);
+
+    return () => {
+      window.clearTimeout(retryTimer);
+    };
+  }, [session.positions, session.closedTrades, backendSyncRevision]);
 
   useEffect(() => {
     if (isLoadingData) {
@@ -2594,12 +2851,6 @@ export default function App() {
         const afterPending = evaluatePendingOrders(next, item.liveCandle, item.pairId, marks);
         if (afterPending !== next) {
           next = afterPending;
-          changed = true;
-        }
-
-        const afterRisk = evaluateRiskExits(next, item.liveCandle, item.pairId);
-        if (afterRisk !== next) {
-          next = afterRisk;
           changed = true;
         }
 
@@ -2970,7 +3221,7 @@ export default function App() {
     }));
   }
 
-  function savePositionBrackets() {
+  async function savePositionBrackets() {
     if (!editingPosition) {
       closePositionBracketEditor();
       return;
@@ -3002,13 +3253,20 @@ export default function App() {
       return;
     }
 
-    const getLatestCandleForPair = (pairId) => {
-      const series = datasets[pairId] ?? [];
-      if (Array.isArray(series) && series.length > 0) {
-        return series[series.length - 1];
+    if (editingPosition.backendPositionId) {
+      try {
+        await updateBackendPositionBrackets(
+          BACKEND_USER_ID,
+          editingPosition.backendPositionId,
+          takeProfit,
+          stopLoss,
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to update TP/SL on backend.';
+        setPositionBracketEditor((previous) => ({ ...previous, error: message }));
+        return;
       }
-      return currentCandle;
-    };
+    }
 
     setSession((previous) => {
       const position = previous.positions.find((item) => item.id === editingPosition.id);
@@ -3040,19 +3298,31 @@ export default function App() {
     closePositionBracketEditor();
   }
 
-  function deletePositionBrackets() {
+  async function deletePositionBrackets() {
     if (!editingPosition) {
       closePositionBracketEditor();
       return;
     }
 
-    const getLatestCandleForPair = (pairId) => {
-      const series = datasets[pairId] ?? [];
-      if (Array.isArray(series) && series.length > 0) {
-        return series[series.length - 1];
+    if (editingPosition.stopLoss === null && editingPosition.takeProfit === null) {
+      closePositionBracketEditor();
+      return;
+    }
+
+    if (editingPosition.backendPositionId) {
+      try {
+        await updateBackendPositionBrackets(
+          BACKEND_USER_ID,
+          editingPosition.backendPositionId,
+          null,
+          null,
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to remove TP/SL on backend.';
+        setPositionBracketEditor((previous) => ({ ...previous, error: message }));
+        return;
       }
-      return currentCandle;
-    };
+    }
 
     setSession((previous) => {
       const position = previous.positions.find((item) => item.id === editingPosition.id);
@@ -3086,13 +3356,34 @@ export default function App() {
     closePositionBracketEditor();
   }
 
-  function resetSession() {
+  async function resetSession() {
     if (session.balance === INITIAL_BALANCE
       && session.positions.length === 0
       && session.pendingOrders.length === 0
       && session.closedTrades.length === 0
       && session.sequence <= 1) {
       return;
+    }
+
+    const backendCloseTasks = session.positions
+      .filter((position) => typeof position.backendPositionId === 'string' && position.backendPositionId.length > 0)
+      .map((position) => {
+        const closePrice = Number(getLatestCandleForPair(position.pair)?.close);
+        if (!Number.isFinite(closePrice) || closePrice <= 0) {
+          return Promise.resolve();
+        }
+
+        return closeBackendPosition(BACKEND_USER_ID, position.backendPositionId, closePrice).catch((error) => {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('already closed') || errorMessage.includes('not found')) {
+            return;
+          }
+          console.error('Failed to close backend position during reset', error);
+        });
+      });
+
+    if (backendCloseTasks.length > 0) {
+      await Promise.all(backendCloseTasks);
     }
 
     for (const timeoutId of patternNotificationTimersRef.current.values()) {
@@ -3110,8 +3401,11 @@ export default function App() {
     setChartMarkerTooltip(null);
     chartCrosshairRef.current = null;
 
-    removeStoredSession();
-    lastPersistedPayloadRef.current = '';
+    backendPositionIdsRef.current.clear();
+    backendOpenSyncInFlightRef.current.clear();
+    backendCloseSyncInFlightRef.current.clear();
+    backendCloseSyncedTradeIdsRef.current.clear();
+    backendClosedLocalIdsRef.current.clear();
     setSession(createSession(candles));
     setTicket((previous) => ({ ...defaultTicket(currentPrice), type: previous.type }));
     setCoachReport(null);
@@ -3773,7 +4067,15 @@ export default function App() {
           </div>
 
           <div className="table-wrap">
-            {session.closedTrades.length === 0 ? (
+            {isLoadingBackendClosedPositions && backendClosedPositions.length === 0 ? (
+              <p className="empty" style={{ padding: '10px' }}>
+                Loading closed trades...
+              </p>
+            ) : backendClosedPositionsError ? (
+              <p className="empty" style={{ padding: '10px' }}>
+                Closed trades unavailable ({backendClosedPositionsError}).
+              </p>
+            ) : backendClosedPositions.length === 0 ? (
               <p className="empty" style={{ padding: '10px' }}>
                 No closed trades yet.
               </p>
@@ -3791,19 +4093,31 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {session.closedTrades.map((trade) => (
-                    <tr key={trade.id}>
-                      <td>{trade.side}</td>
-                      <td>
-                        {fmtNumber(trade.qty, 3)} {getPairBaseSymbol(trade.pair)}
-                      </td>
-                      <td>${fmtPrice(trade.entryPrice)}</td>
-                      <td>${fmtPrice(trade.exitPrice)}</td>
-                      <td className={trade.pnl >= 0 ? 'metric-value pos' : 'metric-value neg'}>{fmtSigned(trade.pnl)}</td>
-                      <td>{trade.rMultiple === null ? '-' : `${fmtNumber(trade.rMultiple, 2)}R`}</td>
-                      <td>{trade.reason}</td>
-                    </tr>
-                  ))}
+                  {backendClosedPositions.map((position) => {
+                    const localTrade = localClosedTradesByBackendId.get(position.id) ?? null;
+                    const qtyLabel = localTrade
+                      ? `${fmtNumber(localTrade.qty, 3)} ${getPairBaseSymbol(localTrade.pair)}`
+                      : '-';
+                    const pnl = localTrade?.pnl ?? null;
+                    const rMultiple = localTrade?.rMultiple ?? null;
+                    const reason = position.closeReason
+                      ? String(position.closeReason).replace('_', '-')
+                      : localTrade?.reason ?? '-';
+
+                    return (
+                      <tr key={position.id}>
+                        <td>{position.side}</td>
+                        <td>{qtyLabel}</td>
+                        <td>${fmtPrice(position.entryPrice)}</td>
+                        <td>{position.closePrice === null ? '-' : `$${fmtPrice(position.closePrice)}`}</td>
+                        <td className={pnl === null ? '' : pnl >= 0 ? 'metric-value pos' : 'metric-value neg'}>
+                          {pnl === null ? '-' : fmtSigned(pnl)}
+                        </td>
+                        <td>{rMultiple === null ? '-' : `${fmtNumber(rMultiple, 2)}R`}</td>
+                        <td>{reason}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

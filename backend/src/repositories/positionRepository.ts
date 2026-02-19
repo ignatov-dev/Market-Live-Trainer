@@ -2,6 +2,12 @@ import type { Pool } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import type { ClosePositionInput, CreatePositionInput, Position } from '../types/domain.js';
 
+interface UpdatePositionBracketsInput {
+  takeProfit: number | null;
+  stopLoss: number | null;
+  userId?: string;
+}
+
 interface PositionRow {
   id: string;
   user_id: string;
@@ -83,6 +89,50 @@ export class PositionRepository {
     );
 
     return result.rows.map(toPosition);
+  }
+
+  async getPositionById(positionId: string, userId?: string): Promise<Position | null> {
+    const params: unknown[] = [positionId];
+    let query = 'SELECT * FROM positions WHERE id = $1';
+
+    if (userId) {
+      params.push(userId);
+      query += ` AND user_id = $${params.length}`;
+    }
+
+    const result = await this.db.query<PositionRow>(query, params);
+    if (result.rowCount === 0) {
+      return null;
+    }
+
+    return toPosition(result.rows[0]);
+  }
+
+  async updatePositionBracketsIfOpen(
+    positionId: string,
+    input: UpdatePositionBracketsInput,
+  ): Promise<Position | null> {
+    const params: unknown[] = [positionId, input.takeProfit, input.stopLoss];
+
+    let query = `
+      UPDATE positions
+      SET take_profit = $2, stop_loss = $3
+      WHERE id = $1 AND status = 'open'
+    `;
+
+    if (input.userId) {
+      params.push(input.userId);
+      query += ` AND user_id = $${params.length}`;
+    }
+
+    query += ' RETURNING *';
+
+    const result = await this.db.query<PositionRow>(query, params);
+    if (result.rowCount === 0) {
+      return null;
+    }
+
+    return toPosition(result.rows[0]);
   }
 
   async closePositionIfOpen(positionId: string, input: ClosePositionInput): Promise<Position | null> {

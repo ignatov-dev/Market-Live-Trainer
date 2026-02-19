@@ -19,13 +19,27 @@ const closePositionSchema = z.object({
   reason: z.enum(['manual', 'system']).default('manual'),
 });
 
+const updateBracketsSchema = z.object({
+  userId: z.string().min(1),
+  takeProfit: z.number().positive().nullable(),
+  stopLoss: z.number().positive().nullable(),
+});
+
 const listPositionsQuerySchema = z.object({
   userId: z.string().min(1),
   status: z.enum(['open', 'closed']).optional(),
 });
 
-function validateBrackets(payload: z.infer<typeof createPositionSchema>): string | null {
-  const { side, entryPrice, takeProfit, stopLoss } = payload;
+const listClosedPositionsQuerySchema = z.object({
+  userId: z.string().min(1),
+});
+
+function validateBrackets(
+  side: 'long' | 'short',
+  entryPrice: number,
+  takeProfit: number | null,
+  stopLoss: number | null,
+): string | null {
 
   if (takeProfit !== null) {
     if (side === 'long' && takeProfit <= entryPrice) {
@@ -67,7 +81,12 @@ export function registerPositionRoutes(
       return reply.code(400).send({ error: parsed.error.flatten() });
     }
 
-    const error = validateBrackets(parsed.data);
+    const error = validateBrackets(
+      parsed.data.side,
+      parsed.data.entryPrice,
+      parsed.data.takeProfit,
+      parsed.data.stopLoss,
+    );
     if (error) {
       return reply.code(400).send({ error });
     }
@@ -100,6 +119,60 @@ export function registerPositionRoutes(
 
     const positions = await repository.listPositions(parsed.data.userId, parsed.data.status);
     return reply.send({ data: positions });
+  });
+
+  app.get('/api/positions/closed', async (request, reply) => {
+    const parsed = listClosedPositionsQuerySchema.safeParse(request.query);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.flatten() });
+    }
+
+    const positions = await repository.listPositions(parsed.data.userId, 'closed');
+    return reply.send({ data: positions });
+  });
+
+  app.patch('/api/positions/:id/brackets', async (request, reply) => {
+    const params = z.object({ id: z.string().uuid() }).safeParse(request.params);
+    if (!params.success) {
+      return reply.code(400).send({ error: params.error.flatten() });
+    }
+
+    const parsed = updateBracketsSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.flatten() });
+    }
+
+    const existing = await repository.getPositionById(params.data.id, parsed.data.userId);
+    if (!existing) {
+      return reply.code(404).send({ error: 'Position not found.' });
+    }
+
+    if (existing.status !== 'open') {
+      return reply.code(409).send({ error: 'Position is already closed.' });
+    }
+
+    const error = validateBrackets(
+      existing.side,
+      existing.entryPrice,
+      parsed.data.takeProfit,
+      parsed.data.stopLoss,
+    );
+    if (error) {
+      return reply.code(400).send({ error });
+    }
+
+    const updated = await repository.updatePositionBracketsIfOpen(params.data.id, {
+      userId: parsed.data.userId,
+      takeProfit: parsed.data.takeProfit,
+      stopLoss: parsed.data.stopLoss,
+    });
+
+    if (!updated) {
+      return reply.code(409).send({ error: 'Position is already closed or not found.' });
+    }
+
+    engine.register(updated);
+    return reply.send({ data: updated });
   });
 
   app.post('/api/positions/:id/close', async (request, reply) => {

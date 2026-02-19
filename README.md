@@ -18,7 +18,7 @@ Standalone MVP for a 1-week internal hackathon.
   - Limit orders
   - Optional stop-loss / take-profit
   - Manual position close
-  - Local storage persistence for pending/open/closed orders across page refresh
+  - Backend-backed position lifecycle via API (`/api/positions`)
 - Tracks session analytics:
   - Net PnL, win rate, profit factor, max drawdown, avg R, avg hold time
   - Equity curve
@@ -30,12 +30,32 @@ Standalone MVP for a 1-week internal hackathon.
 ## Run locally
 
 ```bash
-cd /Users/evgeniy.ignatov/Desktop/xbo/market-replay-trainer
-npm install
-npm run dev
+cd /Users/evgeniy.ignatov/Desktop/xbo/project/Market-Live-Trainer
+pnpm install
+pnpm run dev
 ```
 
 Open the local URL printed by Vite.
+
+## Local frontend + remote API (Render/Neon)
+
+If you want to run only React locally and send all position API/WebSocket traffic to your deployed backend:
+
+1. Create `/Users/evgeniy.ignatov/Desktop/xbo/project/Market-Live-Trainer/.env.local`:
+
+```bash
+VITE_BACKEND_PROXY_TARGET=https://your-render-service.onrender.com
+VITE_BACKEND_USER_ID=demo-user
+```
+
+2. Start frontend only:
+
+```bash
+pnpm run dev
+```
+
+Vite proxies `/api`, `/ws`, and `/health` to `VITE_BACKEND_PROXY_TARGET`.  
+Positions will be stored in the database configured by that backend (for example Neon).
 
 ## Build
 

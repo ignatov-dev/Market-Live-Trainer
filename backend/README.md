@@ -69,6 +69,8 @@ docker compose up --build
 
 ### `GET /api/positions?userId=demo-user&status=open`
 
+### `GET /api/positions/closed?userId=demo-user`
+
 ### `POST /api/positions/:id/close`
 
 ```json

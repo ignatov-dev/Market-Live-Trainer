@@ -26,10 +26,18 @@ export interface CreatePositionPayload {
   stopLoss: number | null;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
+
+function buildApiUrl(path: string): string {
+  if (API_BASE_URL.length > 0) {
+    return `${API_BASE_URL}${path}`;
+  }
+
+  return path;
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(buildApiUrl(path), {
     headers: {
       'Content-Type': 'application/json',
       ...(init?.headers ?? {}),
@@ -65,6 +73,12 @@ export async function listPositions(userId: string, status?: PositionStatus): Pr
   return data.data;
 }
 
+export async function listClosedPositions(userId: string): Promise<Position[]> {
+  const params = new URLSearchParams({ userId });
+  const data = await request<{ data: Position[] }>(`/api/positions/closed?${params.toString()}`);
+  return data.data;
+}
+
 export async function closePosition(
   userId: string,
   positionId: string,
@@ -82,8 +96,37 @@ export async function closePosition(
   return data.data;
 }
 
+export async function updatePositionBrackets(
+  userId: string,
+  positionId: string,
+  takeProfit: number | null,
+  stopLoss: number | null,
+): Promise<Position> {
+  const data = await request<{ data: Position }>(`/api/positions/${positionId}/brackets`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      userId,
+      takeProfit,
+      stopLoss,
+    }),
+  });
+
+  return data.data;
+}
+
 export function backendWsUrl(userId: string): string {
-  const url = new URL(API_BASE_URL.replace('http', 'ws'));
+  const url = API_BASE_URL.length > 0
+    ? new URL(API_BASE_URL)
+    : new URL(
+      `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`,
+    );
+
+  if (url.protocol === 'http:') {
+    url.protocol = 'ws:';
+  } else if (url.protocol === 'https:') {
+    url.protocol = 'wss:';
+  }
+
   url.pathname = '/ws';
   url.searchParams.set('userId', userId);
   return url.toString();

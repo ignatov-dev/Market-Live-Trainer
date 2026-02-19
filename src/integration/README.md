@@ -1,6 +1,6 @@
 # Frontend backend integration notes
 
-Use `useBackendPositions` instead of localStorage-based position persistence.
+Use `useBackendPositions` for backend-based position persistence.
 
 ```tsx
 const userId = 'demo-user';
@@ -24,11 +24,14 @@ await create({
 await close(positionId, currentPrice);
 ```
 
-### Env var
+### Env vars
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8080
+VITE_BACKEND_PROXY_TARGET=https://your-render-service.onrender.com
+VITE_BACKEND_USER_ID=demo-user
 ```
+
+`VITE_API_BASE_URL` is optional. If omitted, the app uses same-origin paths (`/api`, `/ws`) and relies on Vite proxy in local dev.
 
 ### Files
 
