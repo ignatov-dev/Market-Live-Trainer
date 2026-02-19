@@ -6,6 +6,7 @@ export interface Position {
   userId: string;
   symbol: string;
   side: PositionSide;
+  quantity: number;
   entryPrice: number;
   takeProfit: number | null;
   stopLoss: number | null;
@@ -21,6 +22,7 @@ export interface CreatePositionPayload {
   userId: string;
   symbol: string;
   side: PositionSide;
+  quantity: number;
   entryPrice: number;
   takeProfit: number | null;
   stopLoss: number | null;

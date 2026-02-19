@@ -61,6 +61,7 @@ docker compose up --build
   "userId": "demo-user",
   "symbol": "BTC-USD",
   "side": "long",
+  "quantity": 0.1,
   "entryPrice": 100000,
   "takeProfit": 102500,
   "stopLoss": 99500

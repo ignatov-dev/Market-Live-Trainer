@@ -7,6 +7,7 @@ export interface Position {
   userId: string;
   symbol: string;
   side: PositionSide;
+  quantity: number;
   entryPrice: number;
   takeProfit: number | null;
   stopLoss: number | null;
@@ -22,6 +23,7 @@ export interface CreatePositionInput {
   userId: string;
   symbol: string;
   side: PositionSide;
+  quantity: number;
   entryPrice: number;
   takeProfit: number | null;
   stopLoss: number | null;

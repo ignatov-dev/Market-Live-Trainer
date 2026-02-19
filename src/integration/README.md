@@ -16,6 +16,7 @@ const {
 await create({
   symbol: 'BTC-USD',
   side: 'long',
+  quantity: 0.1,
   entryPrice: currentPrice,
   takeProfit: 102500,
   stopLoss: 99500,

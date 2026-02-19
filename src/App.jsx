@@ -124,11 +124,12 @@ const PRODUCT_TO_PAIR = Object.fromEntries(PAIRS.map((item) => [item.coinbasePro
 const PAIR_TO_PRODUCT = Object.fromEntries(PAIRS.map((item) => [item.id, item.coinbaseProduct]));
 const BACKEND_USER_ID = import.meta.env.VITE_BACKEND_USER_ID ?? 'demo-user';
 
-function buildBackendPositionKey(symbol, side, entryPrice, takeProfit, stopLoss) {
+function buildBackendPositionKey(symbol, side, quantity, entryPrice, takeProfit, stopLoss) {
+  const size = Number(quantity).toFixed(8);
   const entry = Number(entryPrice).toFixed(8);
   const tp = takeProfit === null ? 'null' : Number(takeProfit).toFixed(8);
   const sl = stopLoss === null ? 'null' : Number(stopLoss).toFixed(8);
-  return `${symbol}|${side}|${entry}|${tp}|${sl}`;
+  return `${symbol}|${side}|${size}|${entry}|${tp}|${sl}`;
 }
 
 function getTimeframeById(timeframeId) {
@@ -2422,6 +2423,7 @@ export default function App() {
           const key = buildBackendPositionKey(
             backendPosition.symbol,
             backendPosition.side,
+            backendPosition.quantity,
             backendPosition.entryPrice,
             backendPosition.takeProfit,
             backendPosition.stopLoss,
@@ -2453,6 +2455,7 @@ export default function App() {
             const matchKey = buildBackendPositionKey(
               symbol,
               position.side,
+              position.qty,
               position.entryPrice,
               position.takeProfit,
               position.stopLoss,
@@ -2583,6 +2586,7 @@ export default function App() {
             userId: BACKEND_USER_ID,
             symbol,
             side: position.side,
+            quantity: position.qty,
             entryPrice: position.entryPrice,
             takeProfit: position.takeProfit,
             stopLoss: position.stopLoss,
@@ -4095,9 +4099,10 @@ export default function App() {
                 <tbody>
                   {backendClosedPositions.map((position) => {
                     const localTrade = localClosedTradesByBackendId.get(position.id) ?? null;
+                    const backendPairId = PRODUCT_TO_PAIR[position.symbol] ?? position.symbol.replace('-', '');
                     const qtyLabel = localTrade
                       ? `${fmtNumber(localTrade.qty, 3)} ${getPairBaseSymbol(localTrade.pair)}`
-                      : '-';
+                      : `${fmtNumber(position.quantity, 3)} ${getPairBaseSymbol(backendPairId)}`;
                     const pnl = localTrade?.pnl ?? null;
                     const rMultiple = localTrade?.rMultiple ?? null;
                     const reason = position.closeReason

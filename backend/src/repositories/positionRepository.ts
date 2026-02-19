@@ -13,6 +13,7 @@ interface PositionRow {
   user_id: string;
   symbol: string;
   side: 'long' | 'short';
+  quantity: string;
   entry_price: string;
   take_profit: string | null;
   stop_loss: string | null;
@@ -30,6 +31,7 @@ function toPosition(row: PositionRow): Position {
     userId: row.user_id,
     symbol: row.symbol,
     side: row.side,
+    quantity: Number(row.quantity),
     entryPrice: Number(row.entry_price),
     takeProfit: row.take_profit === null ? null : Number(row.take_profit),
     stopLoss: row.stop_loss === null ? null : Number(row.stop_loss),
@@ -49,8 +51,8 @@ export class PositionRepository {
     const result = await this.db.query<PositionRow>(
       `
       INSERT INTO positions (
-        id, user_id, symbol, side, entry_price, take_profit, stop_loss
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        id, user_id, symbol, side, quantity, entry_price, take_profit, stop_loss
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
       `,
       [
@@ -58,6 +60,7 @@ export class PositionRepository {
         input.userId,
         input.symbol,
         input.side,
+        input.quantity,
         input.entryPrice,
         input.takeProfit,
         input.stopLoss,
