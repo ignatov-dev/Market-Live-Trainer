@@ -1,0 +1,169 @@
+:root {
+  --bg: #f8fbff;
+  --panel: #ffffff;
+  --ink: #0f172a;
+  --muted: #607086;
+  --line: #d7e2f0;
+  --brand: #1d4ed8;
+  --success: #059669;
+  --danger: #dc2626;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 300px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 13px/1.4 "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.popup {
+  padding: 12px;
+}
+
+.popup-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.popup-head h1 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.popup-head-updated {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.status {
+  margin: 10px 0 0;
+  color: var(--muted);
+}
+
+.stats {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stat-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 10px;
+}
+
+.label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.value {
+  margin: 6px 0 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.value.pos {
+  color: var(--success);
+}
+
+.value.neg {
+  color: var(--danger);
+}
+
+.positions {
+  margin-top: 10px;
+}
+
+.positions-title {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.positions-list {
+  display: grid;
+  gap: 6px;
+}
+
+.position-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.position-top,
+.position-bottom {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.position-side {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.position-side.long {
+  color: var(--success);
+}
+
+.position-side.short {
+  color: var(--danger);
+}
+
+.position-qty {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.position-entry {
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.position-pnl {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.position-pnl.pos {
+  color: var(--success);
+}
+
+.position-pnl.neg {
+  color: var(--danger);
+}
+
+.meta {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.meta p {
+  margin: 2px 0;
+}

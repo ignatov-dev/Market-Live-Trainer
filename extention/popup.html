@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Market Snapshot</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="popup-head">
+        <h1>Market Snapshot</h1>
+        <p id="updatedAt" class="popup-head-updated">Updated: -</p>
+      </header>
+
+      <p id="status" class="status">Loading...</p>
+
+      <section id="stats" class="stats" hidden>
+        <article class="stat-card">
+          <p class="label">Session Return</p>
+          <p id="sessionReturn" class="value">-</p>
+        </article>
+
+        <article class="stat-card">
+          <p class="label">Equity</p>
+          <p id="equity" class="value">-</p>
+        </article>
+      </section>
+
+      <section id="positionsSection" class="positions" hidden>
+        <p class="positions-title">Open Positions</p>
+        <div id="positionsList" class="positions-list"></div>
+      </section>
+
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
