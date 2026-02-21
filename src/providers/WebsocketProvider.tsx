@@ -9,12 +9,13 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { mergePairCandles } from '../store/slices/chartSlice';
 import type { Datasets } from '../types/domain';
 import { applyLiveTickToCandles } from '../components/CandleChart/utils/candles';
-import type { PositionClosedEvent } from '../integration/usePositionEvents';
+import type { PositionClosedEvent, PositionCreatedEvent } from '../integration/usePositionEvents';
 import type { PositionPnlEvent } from '../integration/usePositionPnlEvents';
 import type { AccountBalanceEvent } from '../integration/useAccountEvents';
 
 interface WebsocketContextValue {
   subscribeClosedEvents: (listener: (event: PositionClosedEvent) => void) => () => void;
+  subscribeCreatedEvents: (listener: (event: PositionCreatedEvent) => void) => () => void;
   subscribePnlEvents: (listener: (event: PositionPnlEvent) => void) => () => void;
   subscribeAccountEvents: (listener: (event: AccountBalanceEvent) => void) => () => void;
 }
@@ -30,6 +31,7 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
 
   const datasetsRef = useRef<Datasets>(datasets);
   const closedListenersRef = useRef(new Set<(event: PositionClosedEvent) => void>());
+  const createdListenersRef = useRef(new Set<(event: PositionCreatedEvent) => void>());
   const pnlListenersRef = useRef(new Set<(event: PositionPnlEvent) => void>());
   const accountListenersRef = useRef(new Set<(event: AccountBalanceEvent) => void>());
   datasetsRef.current = datasets;
@@ -38,6 +40,13 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
     closedListenersRef.current.add(listener);
     return () => {
       closedListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const subscribeCreatedEvents = useCallback((listener: (event: PositionCreatedEvent) => void) => {
+    createdListenersRef.current.add(listener);
+    return () => {
+      createdListenersRef.current.delete(listener);
     };
   }, []);
 
@@ -61,6 +70,12 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const handleCreated = useCallback((event: PositionCreatedEvent) => {
+    for (const listener of createdListenersRef.current) {
+      listener(event);
+    }
+  }, []);
+
   const handlePnl = useCallback((event: PositionPnlEvent) => {
     for (const listener of pnlListenersRef.current) {
       listener(event);
@@ -76,6 +91,7 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
   usePositionEvents({
     authToken: backendAuthToken,
     onClosed: handleClosed,
+    onCreated: handleCreated,
   });
 
   usePositionPnlEvents({
@@ -191,10 +207,11 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
   const value = useMemo<WebsocketContextValue>(
     () => ({
       subscribeClosedEvents,
+      subscribeCreatedEvents,
       subscribePnlEvents,
       subscribeAccountEvents,
     }),
-    [subscribeAccountEvents, subscribeClosedEvents, subscribePnlEvents],
+    [subscribeAccountEvents, subscribeClosedEvents, subscribeCreatedEvents, subscribePnlEvents],
   );
 
   return <WebsocketContext.Provider value={value}>{children}</WebsocketContext.Provider>;

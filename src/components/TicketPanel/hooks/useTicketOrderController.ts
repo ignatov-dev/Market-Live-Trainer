@@ -74,9 +74,14 @@ export function useTicketOrderController(): TicketOrderController {
   const safeReplayIndex = hasCandles
     ? Math.max(0, Math.min(session.replayIndex, candles.length - 1))
     : 0;
-  const currentCandle = hasCandles ? (candles[safeReplayIndex] ?? fallbackCandle) : fallbackCandle;
-  const currentPrice = currentCandle.close;
+  
+  // ALways use the live market edge if the user is authenticated (live mode),
+  // otherwise respect the trainer's replay timeline index.
+  const activeIndex = hasBackendAuth && hasCandles ? candles.length - 1 : safeReplayIndex;
+  const currentCandle = hasCandles ? (candles[activeIndex] ?? fallbackCandle) : fallbackCandle;
+  
   const marksByPair = useMemo(() => getLatestMarksByPair(datasets), [datasets]);
+  const currentPrice = hasBackendAuth ? (marksByPair[pair] ?? currentCandle.close) : currentCandle.close;
   const sessionForTrading = useMemo(() => {
     if (!hasBackendAuth) {
       return session;

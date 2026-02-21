@@ -8,12 +8,19 @@ export interface PositionClosedEvent {
   source: 'engine' | 'api';
 }
 
+export interface PositionCreatedEvent {
+  type: 'position.created';
+  position: Position;
+  source: 'engine' | 'api';
+}
+
 interface UsePositionEventsArgs {
   authToken: string | null;
   onClosed: (event: PositionClosedEvent) => void;
+  onCreated?: (event: PositionCreatedEvent) => void;
 }
 
-export function usePositionEvents({ authToken, onClosed }: UsePositionEventsArgs): void {
+export function usePositionEvents({ authToken, onClosed, onCreated }: UsePositionEventsArgs): void {
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptsRef = useRef(0);
 
@@ -47,15 +54,26 @@ export function usePositionEvents({ authToken, onClosed }: UsePositionEventsArgs
         try {
           const payload = JSON.parse(message.data as string) as { type?: string; position?: Position; source?: 'engine' | 'api' };
 
-          if (payload.type !== 'position.closed' || !payload.position || !payload.source) {
+          if (!payload.position || !payload.source) {
             return;
           }
 
-          onClosed({
-            type: 'position.closed',
-            position: payload.position,
-            source: payload.source,
-          });
+          if (payload.type === 'position.closed') {
+            onClosed({
+              type: 'position.closed',
+              position: payload.position,
+              source: payload.source,
+            });
+            return;
+          }
+
+          if (payload.type === 'position.created') {
+            onCreated?.({
+              type: 'position.created',
+              position: payload.position,
+              source: payload.source,
+            });
+          }
         } catch {
           // ignore malformed events
         }
@@ -82,5 +100,5 @@ export function usePositionEvents({ authToken, onClosed }: UsePositionEventsArgs
         clearTimeout(reconnectRef.current);
       }
     };
-  }, [authToken, onClosed]);
+  }, [authToken, onClosed, onCreated]);
 }

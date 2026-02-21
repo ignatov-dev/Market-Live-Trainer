@@ -559,7 +559,33 @@ function startBackendSocket() {
     s1.onopen = () => { if (localSessionId === backendWsSessionId) backendWsReconnectAttempts = 0; };
     s1.onmessage = (e) => {
       if (localSessionId !== backendWsSessionId) return;
-      queueBackendRefresh(); // full refetch for create/close events
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'position.created' && msg.position) {
+          void writeState((state) => {
+            const existing = Array.isArray(state.backendPositions) ? state.backendPositions : [];
+            // Avoid duplicates in case REST already synced it
+            if (existing.some((p) => p.id === msg.position.id)) return state;
+            return { ...state, backendPositions: [...existing, msg.position] };
+          });
+          queueBackendRefresh();
+        } else if (msg.type === 'position.closed' && msg.position) {
+          void writeState((state) => {
+            const existing = Array.isArray(state.backendPositions) ? state.backendPositions : [];
+            const nextPnlMap = { ...(state.backendPnlByPositionId || {}) };
+            delete nextPnlMap[msg.position.id];
+            return {
+              ...state,
+              backendPositions: existing.filter((p) => p.id !== msg.position.id),
+              backendPnlByPositionId: nextPnlMap,
+            };
+          });
+          queueBackendRefresh();
+        }
+        // connection.ready and unknown types are intentionally ignored
+      } catch {
+        // ignore malformed messages
+      }
     };
     s1.onclose = () => handleBackendWsClose(localSessionId);
   }
