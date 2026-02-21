@@ -1,0 +1,32 @@
+.timeline {
+  margin-top: 10px;
+  border: 1px solid rgba(154, 173, 203, 0.5);
+  border-radius: 10px;
+  max-height: 280px;
+  overflow: auto;
+  padding: 8px;
+  background: #f9fbff;
+}
+
+.item {
+  padding: 8px;
+  border-bottom: 1px dashed rgba(169, 187, 212, 0.62);
+  font-size: 13px;
+  color: #2a4061;
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.time {
+  color: #68788f;
+  font-size: 11px;
+  margin-right: 7px;
+  font-weight: 600;
+}
+
+.empty {
+  color: #64758d;
+  font-size: 13px;
+}

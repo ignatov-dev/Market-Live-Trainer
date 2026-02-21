@@ -15,21 +15,40 @@
 
       <p id="status" class="status">Loading...</p>
 
-      <section id="stats" class="stats" hidden>
-        <article class="stat-card">
-          <p class="label">Session Return</p>
-          <p id="sessionReturn" class="value">-</p>
-        </article>
 
-        <article class="stat-card">
-          <p class="label">Equity</p>
-          <p id="equity" class="value">-</p>
-        </article>
+      <div id="backendAuthNotice" class="status notice" hidden>
+        Sign in at Market Live Trainer to see live backend data.
+      </div>
+
+      <section id="liveSnapshot" class="snapshot" hidden>
+        <div id="priceTicker" class="price-ticker"></div>
+        <div class="snapshot-grid">
+          <div class="snapshot-item">
+            <span class="label">Balance</span>
+            <strong class="value-inline">
+              <span id="liveBalance" class="value-primary">-</span>
+              <span id="liveNetPnl" class="value-delta">-</span>
+            </strong>
+          </div>
+          <div class="snapshot-item">
+            <span class="label">Available Margin</span>
+            <strong id="liveMargin" class="value">-</strong>
+          </div>
+          <div class="snapshot-item">
+            <span class="label">Open PnL</span>
+            <strong id="liveOpenPnl" class="value">-</strong>
+          </div>
+          <div class="snapshot-item">
+            <span class="label">Session Return</span>
+            <strong id="liveReturn" class="value">-</strong>
+          </div>
+        </div>
       </section>
 
-      <section id="positionsSection" class="positions" hidden>
-        <p class="positions-title">Open Positions</p>
-        <div id="positionsList" class="positions-list"></div>
+
+      <section id="backendPositionsSection" class="positions" hidden>
+        <p class="positions-title">Open Positions (Live)</p>
+        <div id="backendPositionsList" class="positions-list"></div>
       </section>
 
     </main>

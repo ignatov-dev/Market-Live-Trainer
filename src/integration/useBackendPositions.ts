@@ -2,17 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   closePosition,
   createPosition,
+  getBackendAuthToken,
   listPositions,
   type CreatePositionPayload,
   type Position,
 } from './positionsApi';
 import { usePositionEvents } from './usePositionEvents';
 
-interface UseBackendPositionsArgs {
-  userId: string;
-}
-
-export function useBackendPositions({ userId }: UseBackendPositionsArgs) {
+export function useBackendPositions() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +17,7 @@ export function useBackendPositions({ userId }: UseBackendPositionsArgs) {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await listPositions(userId);
+      const data = await listPositions();
       setPositions(data);
       setError(null);
     } catch (loadError) {
@@ -28,14 +25,14 @@ export function useBackendPositions({ userId }: UseBackendPositionsArgs) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     void reload();
   }, [reload]);
 
   usePositionEvents({
-    userId,
+    authToken: getBackendAuthToken(),
     onClosed: ({ position: closed }) => {
       setPositions((prev) => prev.map((item) => (item.id === closed.id ? closed : item)));
     },
@@ -45,21 +42,21 @@ export function useBackendPositions({ userId }: UseBackendPositionsArgs) {
   const closedPositions = useMemo(() => positions.filter((item) => item.status === 'closed'), [positions]);
 
   const create = useCallback(
-    async (payload: Omit<CreatePositionPayload, 'userId'>) => {
-      const created = await createPosition({ ...payload, userId });
+    async (payload: CreatePositionPayload) => {
+      const created = await createPosition(payload);
       setPositions((prev) => [created, ...prev]);
       return created;
     },
-    [userId],
+    [],
   );
 
   const close = useCallback(
     async (positionId: string, closePrice: number) => {
-      const closed = await closePosition(userId, positionId, closePrice);
+      const closed = await closePosition(positionId, closePrice);
       setPositions((prev) => prev.map((item) => (item.id === closed.id ? closed : item)));
       return closed;
     },
-    [userId],
+    [],
   );
 
   return {

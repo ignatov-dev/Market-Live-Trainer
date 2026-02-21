@@ -8,7 +8,8 @@ Production-style backend for the market replay app.
 - PostgreSQL persistence
 - Coinbase websocket ticker listener
 - TP/SL auto-close engine that runs server-side
-- Realtime websocket updates to frontend (`/ws?userId=...`)
+- JWT-authenticated REST + websocket access
+- Realtime websocket updates to frontend (`/ws?token=...`)
 - Reconnect and heartbeat handling for upstream Coinbase stream
 - Idempotent close logic (`UPDATE ... WHERE status='open'`)
 - Restart recovery by reloading open positions from DB at boot
@@ -54,11 +55,16 @@ docker compose up --build
 
 ## API
 
+All `/api/*` routes require:
+
+```text
+Authorization: Bearer <access-token>
+```
+
 ### `POST /api/positions`
 
 ```json
 {
-  "userId": "demo-user",
   "symbol": "BTC-USD",
   "side": "long",
   "quantity": 0.1,
@@ -68,15 +74,14 @@ docker compose up --build
 }
 ```
 
-### `GET /api/positions?userId=demo-user&status=open`
+### `GET /api/positions?status=open`
 
-### `GET /api/positions/closed?userId=demo-user`
+### `GET /api/positions/closed`
 
 ### `POST /api/positions/:id/close`
 
 ```json
 {
-  "userId": "demo-user",
   "closePrice": 101800,
   "reason": "manual"
 }
@@ -87,7 +92,7 @@ docker compose up --build
 Connect to:
 
 ```text
-ws://localhost:8080/ws?userId=demo-user
+ws://localhost:8080/ws?token=<access-token>
 ```
 
 Event payload:

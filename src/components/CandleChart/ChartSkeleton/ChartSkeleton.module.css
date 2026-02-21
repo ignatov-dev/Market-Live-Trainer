@@ -1,0 +1,135 @@
+.chartSkeleton {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  background: #f3f7fd;
+}
+
+.chartSkeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: chartSkeletonSweep 1.8s linear infinite;
+}
+
+.chartSkeletonGrid {
+  position: absolute;
+  top: 20px;
+  right: 58px;
+  bottom: 52px;
+  left: 16px;
+  background-image:
+    linear-gradient(to bottom, rgba(184, 201, 226, 0.45) 1px, transparent 1px),
+    linear-gradient(to right, rgba(209, 221, 239, 0.42) 1px, transparent 1px);
+  background-size:
+    100% calc(100% / 4),
+    calc(100% / 5) 100%;
+}
+
+.chartSkeletonPriceAxis {
+  position: absolute;
+  top: 20px;
+  right: 58px;
+  bottom: 52px;
+  width: 1px;
+  background: rgba(192, 208, 229, 0.86);
+}
+
+.chartSkeletonPriceLabels {
+  position: absolute;
+  top: 20px;
+  right: 5px;
+  bottom: 52px;
+  width: 50px;
+  display: grid;
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  justify-items: start;
+}
+
+.chartSkeletonPriceLabels span {
+  height: 14px;
+  border-radius: 4px;
+  background: rgba(205, 219, 239, 0.86);
+}
+
+.chartSkeletonCandles {
+  position: absolute;
+  top: 20px;
+  right: 58px;
+  bottom: 52px;
+  left: 16px;
+  display: grid;
+  grid-template-columns: repeat(72, minmax(0, 1fr));
+  gap: 2px;
+  padding-right: var(--skeleton-gap-right, 8%);
+}
+
+.chartSkeletonCandle {
+  position: relative;
+  min-width: 1px;
+  animation: chartCandlePulse 1.6s ease-in-out infinite;
+}
+
+.chartSkeletonWick {
+  position: absolute;
+  top: var(--wick-top);
+  left: 50%;
+  width: 2px;
+  height: var(--wick-height);
+  background: #b5c8e3;
+  border-radius: 1px;
+  transform: translateX(-50%);
+}
+
+.chartSkeletonBody {
+  position: absolute;
+  left: 50%;
+  top: var(--body-top);
+  width: min(7px, 74%);
+  height: max(2px, var(--body-height));
+  background: #cedcef;
+  border-radius: 2px;
+  transform: translateX(-50%);
+}
+
+.chartSkeletonCandle.isBear .chartSkeletonBody {
+  background: #bfd0e7;
+}
+
+.chartSkeletonTimeAxis {
+  position: absolute;
+  right: 58px;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chartSkeletonTimeAxis span {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(205, 219, 239, 0.86);
+}
+
+@keyframes chartCandlePulse {
+  0%,
+  100% {
+    opacity: 0.76;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes chartSkeletonSweep {
+  to {
+    transform: translateX(100%);
+  }
+}

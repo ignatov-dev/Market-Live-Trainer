@@ -3,7 +3,6 @@
 Use `useBackendPositions` for backend-based position persistence.
 
 ```tsx
-const userId = 'demo-user';
 const {
   openPositions,
   closedPositions,
@@ -11,7 +10,7 @@ const {
   close,
   loading,
   error,
-} = useBackendPositions({ userId });
+} = useBackendPositions();
 
 await create({
   symbol: 'BTC-USD',
@@ -29,7 +28,8 @@ await close(positionId, currentPrice);
 
 ```bash
 VITE_BACKEND_PROXY_TARGET=https://your-render-service.onrender.com
-VITE_BACKEND_USER_ID=demo-user
+VITE_NEON_AUTH_URL=https://your-neon-auth-host/auth
+VITE_BACKEND_AUTH_TOKEN=
 ```
 
 `VITE_API_BASE_URL` is optional. If omitted, the app uses same-origin paths (`/api`, `/ws`) and relies on Vite proxy in local dev.

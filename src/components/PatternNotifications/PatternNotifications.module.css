@@ -1,0 +1,75 @@
+.container {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 60;
+  width: min(360px, calc(100vw - 24px));
+  display: grid;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  border: 1px solid rgba(136, 155, 184, 0.34);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 28px rgba(22, 34, 54, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 10px 12px;
+  pointer-events: auto;
+}
+
+.toastHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.toastHead strong {
+  letter-spacing: 0.02em;
+}
+
+.toastHead span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.toastTime {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.toastText {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #1f2937;
+}
+
+.toastClose {
+  margin-top: 8px;
+  border: 0;
+  background: transparent;
+  color: #4b5563;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+}
+
+.toastClose:hover {
+  color: #111827;
+}
+
+@media (max-width: 760px) {
+  .container {
+    right: 12px;
+    left: 12px;
+    width: auto;
+    bottom: 12px;
+  }
+}

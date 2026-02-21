@@ -9,15 +9,19 @@ export interface PositionClosedEvent {
 }
 
 interface UsePositionEventsArgs {
-  userId: string;
+  authToken: string | null;
   onClosed: (event: PositionClosedEvent) => void;
 }
 
-export function usePositionEvents({ userId, onClosed }: UsePositionEventsArgs): void {
+export function usePositionEvents({ authToken, onClosed }: UsePositionEventsArgs): void {
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptsRef = useRef(0);
 
   useEffect(() => {
+    if (typeof authToken !== 'string' || authToken.length === 0) {
+      return undefined;
+    }
+
     let ws: WebSocket | null = null;
     let stopped = false;
 
@@ -26,7 +30,14 @@ export function usePositionEvents({ userId, onClosed }: UsePositionEventsArgs): 
         return;
       }
 
-      ws = new WebSocket(backendWsUrl(userId));
+      let wsUrl: string;
+      try {
+        wsUrl = backendWsUrl();
+      } catch {
+        return;
+      }
+
+      ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         attemptsRef.current = 0;
@@ -71,5 +82,5 @@ export function usePositionEvents({ userId, onClosed }: UsePositionEventsArgs): 
         clearTimeout(reconnectRef.current);
       }
     };
-  }, [onClosed, userId]);
+  }, [authToken, onClosed]);
 }

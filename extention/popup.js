@@ -1,13 +1,29 @@
-const STORAGE_KEY = 'market-live-state-v3';
+const STORAGE_KEY = 'market-live-state-v4';
+const APP_BASE_URL = 'https://market-live-trainer-react.onrender.com';
+// const APP_BASE_URL = 'http://localhost:5173';
+
+const PAIR_TO_COINBASE_PRODUCT = {
+  BTCUSDT: 'BTC-USD',
+  ETHUSDT: 'ETH-USD',
+  SOLUSDT: 'SOL-USD',
+  XRPUSDT: 'XRP-USD',
+};
 
 const statusEl = document.getElementById('status');
-const statsEl = document.getElementById('stats');
 const metaEl = document.getElementById('meta');
-const sessionReturnEl = document.getElementById('sessionReturn');
-const equityEl = document.getElementById('equity');
-const positionsSectionEl = document.getElementById('positionsSection');
-const positionsListEl = document.getElementById('positionsList');
 const updatedAtEl = document.getElementById('updatedAt');
+const backendAuthNoticeEl = document.getElementById('backendAuthNotice');
+const liveSnapshotEl = document.getElementById('liveSnapshot');
+const liveBalanceEl = document.getElementById('liveBalance');
+const liveNetPnlEl = document.getElementById('liveNetPnl');
+const liveMarginEl = document.getElementById('liveMargin');
+const liveCashEl = document.getElementById('liveCash');
+const liveOpenPnlEl = document.getElementById('liveOpenPnl');
+const liveReturnEl = document.getElementById('liveReturn');
+const livePositionsSummaryEl = document.getElementById('livePositionsSummary');
+const priceTickerEl = document.getElementById('priceTicker');
+const backendPositionsSectionEl = document.getElementById('backendPositionsSection');
+const backendPositionsListEl = document.getElementById('backendPositionsList');
 
 function setText(el, value) {
   if (el) {
@@ -74,6 +90,23 @@ function signedTone(value) {
   return safe > 0 ? 'pos' : 'neg';
 }
 
+function getMarkForPosition(position, marksByPair) {
+  const localPair = position?.pair;
+  const product = PAIR_TO_COINBASE_PRODUCT[localPair];
+
+  const directMark = toFiniteNumber(marksByPair?.[localPair]);
+  if (Number.isFinite(directMark) && directMark > 0) return directMark;
+
+  const productMark = toFiniteNumber(marksByPair?.[product]);
+  if (Number.isFinite(productMark) && productMark > 0) return productMark;
+
+  const fallbackEntry = toFiniteNumber(position?.entryPrice);
+  if (Number.isFinite(fallbackEntry) && fallbackEntry > 0) {
+    return fallbackEntry;
+  }
+  return 0;
+}
+
 function fmtTime24(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) {
@@ -91,6 +124,10 @@ function getPairBaseSymbol(pair) {
     return '';
   }
 
+  // Handle explicit separators first
+  if (pair.includes('-')) return pair.split('-')[0];
+  if (pair.includes('/')) return pair.split('/')[0];
+
   const knownSuffixes = ['USDT', 'USDC', 'BUSD', 'USD', 'EUR', 'BTC', 'ETH'];
   for (const suffix of knownSuffixes) {
     if (pair.endsWith(suffix) && pair.length > suffix.length) {
@@ -101,135 +138,186 @@ function getPairBaseSymbol(pair) {
   return pair;
 }
 
-function computePositionNetPnl(position, marksByPair, feeRate) {
-  const markPrice = Number(marksByPair?.[position?.pair]);
-  const safeQty = Number(position?.qty);
-  const safeEntryPrice = Number(position?.entryPrice);
-  const side = typeof position?.side === 'string' ? position.side.trim().toLowerCase() : '';
+function renderPriceTicker(marksByPair) {
+  if (!priceTickerEl) return;
 
-  if (
-    !Number.isFinite(markPrice) ||
-    markPrice <= 0 ||
-    !Number.isFinite(safeQty) ||
-    safeQty <= 0 ||
-    !Number.isFinite(safeEntryPrice) ||
-    safeEntryPrice <= 0 ||
-    (side !== 'long' && side !== 'short')
-  ) {
-    return null;
-  }
-
-  const direction = side === 'long' ? 1 : -1;
-  const gross = (markPrice - safeEntryPrice) * safeQty * direction;
-  const estimatedCloseFee = markPrice * safeQty * feeRate;
-  return gross - estimatedCloseFee;
-}
-
-function renderPositions(state) {
-  if (!positionsSectionEl || !positionsListEl) {
+  const pairs = Object.keys(marksByPair || {})
+    .filter(p => (p.endsWith('USD') || p.endsWith('USDC')) && !p.endsWith('USDT'))
+    .sort();
+  if (pairs.length === 0) {
+    setHidden(priceTickerEl, true);
     return;
   }
 
-  positionsListEl.textContent = '';
+  setHidden(priceTickerEl, false);
+  const fragment = document.createDocumentFragment();
 
-  const positions = Array.isArray(state?.positions) ? state.positions : [];
+  pairs.forEach((pair) => {
+    const price = marksByPair[pair];
+    const base = getPairBaseSymbol(pair);
+
+    const cardEl = document.createElement('div');
+    cardEl.className = 'price-card';
+
+    // Icon
+    const iconEl = document.createElement('img');
+    iconEl.className = 'price-card-icon';
+    iconEl.src = `icons/${base.toLowerCase()}.svg`;
+    iconEl.onerror = () => { iconEl.style.display = 'none'; }; // Hide if icon missing
+
+    // Info Container
+    const infoEl = document.createElement('div');
+    infoEl.className = 'price-card-info';
+
+    const quote = (pair.endsWith('USDC') && !pair.includes('-')) ? 'USDC' : 'USD';
+    const symbolEl = document.createElement('span');
+    symbolEl.className = 'price-card-symbol';
+    symbolEl.textContent = `${base} / ${quote}`;
+
+    const valueEl = document.createElement('span');
+    valueEl.className = 'price-card-value';
+    valueEl.textContent = fmtUsd(price);
+
+    infoEl.append(symbolEl, valueEl);
+    cardEl.append(iconEl, infoEl);
+
+    // Make card clickable
+    cardEl.onclick = () => {
+      const targetUrl = `${APP_BASE_URL}/${base.toLowerCase()}-${quote.toLowerCase()}`;
+      chrome.tabs.query({}, (tabs) => {
+        const foundTab = tabs.find(
+          t => t.url && (t.url.startsWith(APP_BASE_URL) || t.url.startsWith(APP_BASE_URL.replace('localhost', '127.0.0.1')))
+        );
+        if (foundTab) {
+          // If we have any tab open on the app url, navigate the first one and focus it
+          chrome.tabs.update(foundTab.id, { url: targetUrl, active: true });
+          chrome.windows.update(foundTab.windowId, { focused: true });
+        } else {
+          // No tab found, create a new one
+          chrome.tabs.create({ url: targetUrl });
+        }
+      });
+    };
+
+    fragment.append(cardEl);
+  });
+
+  priceTickerEl.textContent = '';
+  priceTickerEl.append(fragment);
+}
+
+function renderBackendPositions(state) {
+  if (!backendPositionsSectionEl || !backendPositionsListEl) {
+    return;
+  }
+
+  backendPositionsListEl.textContent = '';
+
+  const positions = Array.isArray(state?.backendPositions) ? state.backendPositions : [];
   if (positions.length === 0) {
-    setHidden(positionsSectionEl, true);
+    setHidden(backendPositionsSectionEl, true);
     return;
   }
 
   const marksByPair = state?.marksByPair && typeof state.marksByPair === 'object' ? state.marksByPair : {};
-  const feeRate = Number.isFinite(Number(state?.feeRate)) ? Number(state.feeRate) : 0.0004;
 
   const fragment = document.createDocumentFragment();
 
-  positions.forEach((position, index) => {
+  positions.forEach((position) => {
     const sideRaw = typeof position?.side === 'string' ? position.side.trim().toLowerCase() : '';
     const sideText = sideRaw === 'long' ? 'LONG' : sideRaw === 'short' ? 'SHORT' : '-';
     const sideClass = sideRaw === 'long' || sideRaw === 'short' ? sideRaw : '';
-    const baseSymbol = getPairBaseSymbol(position?.pair);
+    const pair = position?.symbol || position?.pair;
+    const baseSymbol = getPairBaseSymbol(pair);
 
-    const qty = Number(position?.qty);
+    // Support both quantity (backend) and qty (local)
+    const qty = Number(position?.quantity ?? position?.qty);
     const qtyText = Number.isFinite(qty)
       ? qty.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 3 })
       : '-';
 
-    const entryPrice = Number(position?.entryPrice);
+    const entryPrice = Number(position?.entryPrice ?? position?.entry_price);
     const entryText = Number.isFinite(entryPrice) ? fmtUsd(entryPrice) : '-';
 
-    const pnl = computePositionNetPnl(position, marksByPair, feeRate);
+    // Prioritize Live WebSocket PnL from state (Total Net includes both fees)
+    const pnlMap = state?.backendPnlByPositionId || {};
+    const posId = position?.positionId || position?.id;
+    let pnl = pnlMap[posId]?.unrealizedTotalNetPnl ?? null;
+
+    // Fallback to manual calculation if mark price is available
+    if (pnl === null) {
+      // Use the robust mark price lookup (supports XRPUSDT -> XRP-USD mapping)
+      const markPrice = getMarkForPosition({ pair, entryPrice: Number(position.entryPrice) }, marksByPair);
+      if (Number.isFinite(markPrice) && markPrice > 0 && Number.isFinite(qty) && Number.isFinite(entryPrice)) {
+        const direction = sideRaw === 'long' ? 1 : -1;
+        const gross = (markPrice - entryPrice) * qty * direction;
+        const openFee = entryPrice * qty * 0.0004;
+        const closeFee = markPrice * qty * 0.0004;
+        pnl = gross - openFee - closeFee;
+      }
+    }
+
     const pnlText = pnl === null ? '-' : fmtSignedUsd(pnl);
     const pnlClass = pnl === null ? '' : signedTone(pnl);
 
     const cardEl = document.createElement('article');
     cardEl.className = 'position-card';
 
+    const iconEl = document.createElement('img');
+    iconEl.className = 'position-icon';
+    iconEl.src = `icons/${baseSymbol.toLowerCase()}.svg`;
+    iconEl.onerror = () => { iconEl.style.display = 'none'; };
+
+    const detailsEl = document.createElement('div');
+    detailsEl.className = 'position-details';
+
     const topEl = document.createElement('div');
     topEl.className = 'position-top';
 
-    const sideEl = document.createElement('span');
-    sideEl.className = `position-side ${sideClass}`.trim();
-    sideEl.textContent = sideText;
+    const quote = (pair.endsWith('USDC') && !pair.includes('-')) ? 'USDC' : 'USD';
+    const pairEl = document.createElement('span');
+    pairEl.className = 'position-pair';
+    pairEl.textContent = `${baseSymbol} / ${quote}`;
 
     const qtyEl = document.createElement('span');
     qtyEl.className = 'position-qty';
     qtyEl.textContent = baseSymbol ? `${qtyText} ${baseSymbol}` : qtyText;
 
-    topEl.append(sideEl, qtyEl);
+    topEl.append(pairEl, qtyEl);
 
     const bottomEl = document.createElement('div');
     bottomEl.className = 'position-bottom';
 
     const entryEl = document.createElement('span');
-    entryEl.className = 'position-entry';
-    entryEl.textContent = `Entry ${entryText}`;
+    entryEl.className = `position-entry ${sideClass}`.trim();
+    entryEl.textContent = `${sideText} FROM ${entryText}`;
 
     const pnlEl = document.createElement('span');
     pnlEl.className = `position-pnl ${pnlClass}`.trim();
     pnlEl.textContent = pnlText;
 
     bottomEl.append(entryEl, pnlEl);
-    cardEl.append(topEl, bottomEl);
-    cardEl.dataset.positionIndex = String(index);
+    detailsEl.append(topEl, bottomEl);
+    cardEl.append(iconEl, detailsEl);
 
     fragment.appendChild(cardEl);
   });
 
-  positionsListEl.appendChild(fragment);
-  setHidden(positionsSectionEl, false);
+  backendPositionsListEl.appendChild(fragment);
+  setHidden(backendPositionsSectionEl, false);
 }
 
 function renderState(state) {
   if (!state || typeof state !== 'object') {
     showStatus('No data yet. Open Market Live Trainer to seed extension state.');
-    setHidden(statsEl, true);
+    setHidden(liveSnapshotEl, true);
     setHidden(metaEl, true);
-    setHidden(positionsSectionEl, true);
+    setHidden(backendPositionsSectionEl, true);
     return;
   }
 
-  const sessionReturnPct = Number(state.sessionReturnPct);
-  const equity = Number(state.equity);
-  const initialBalance = Number(state.initialBalance);
   const status = typeof state.status === 'string' ? state.status : 'idle';
   const updatedAt = Number(state.updatedAt);
-
-  setText(sessionReturnEl, fmtSignedPct(sessionReturnPct));
-  sessionReturnEl?.classList.remove('pos', 'neg');
-  const tone = signedTone(sessionReturnPct);
-  if (tone) {
-    sessionReturnEl?.classList.add(tone);
-  }
-
-  setText(equityEl, fmtUsd(equity));
-  equityEl?.classList.remove('pos', 'neg');
-  if (Number.isFinite(equity) && Number.isFinite(initialBalance)) {
-    const equityDelta = equity - initialBalance;
-    const equityTone = signedTone(equityDelta);
-    if (equityTone) {
-      equityEl?.classList.add(equityTone);
-    }
-  }
 
   if (Number.isFinite(updatedAt)) {
     setText(updatedAtEl, `Updated: ${fmtTime24(updatedAt)}`);
@@ -237,14 +325,58 @@ function renderState(state) {
     setText(updatedAtEl, 'Updated: -');
   }
 
-  renderPositions(state);
   hideStatus();
-  setHidden(statsEl, false);
   setHidden(metaEl, false);
 
   if (status === 'stale') {
-    showStatus('State is stale. Open the app to sync session, extension still updates mark prices.');
+    showStatus('State is stale. Open the app to sync session.');
   }
+
+  // Render backend data
+  const backendAuth = !!state.backendAuth;
+  const backendAccount = state.backendAccount;
+
+  setHidden(backendAuthNoticeEl, backendAuth);
+
+  if (backendAuth && backendAccount) {
+    const equity = Number(backendAccount.equity);
+    const netPnl = Number(backendAccount.netPnl);
+    const availableMargin = Number(backendAccount.availableMargin);
+    const cashBalance = Number(backendAccount.cashBalance);
+    const sessionReturnPct = Number(backendAccount.sessionReturnPct);
+    const livePositionsCount = Array.isArray(state.backendPositions) ? state.backendPositions.length : 0;
+
+    setText(liveBalanceEl, fmtUsd(equity));
+    setText(liveNetPnlEl, fmtSignedUsd(netPnl));
+    liveNetPnlEl?.classList.remove('value-pos', 'value-neg');
+    const pnlTone = signedTone(netPnl);
+    if (pnlTone === 'pos') liveNetPnlEl?.classList.add('value-pos');
+    if (pnlTone === 'neg') liveNetPnlEl?.classList.add('value-neg');
+
+    setText(liveMarginEl, fmtUsd(availableMargin));
+    setText(liveCashEl, fmtUsd(cashBalance));
+
+    // Aggregate Open PnL (Unrealized)
+    const totalOpenPnl = Number(backendAccount.unrealizedTotalNetPnl || 0);
+    setText(liveOpenPnlEl, fmtSignedUsd(totalOpenPnl));
+    liveOpenPnlEl?.classList.remove('value-pos', 'value-neg');
+    const openTone = signedTone(totalOpenPnl);
+    if (openTone === 'pos') liveOpenPnlEl?.classList.add('value-pos');
+    if (openTone === 'neg') liveOpenPnlEl?.classList.add('value-neg');
+
+    setText(liveReturnEl, fmtSignedPct(sessionReturnPct));
+    liveReturnEl?.classList.remove('value-pos', 'value-neg');
+    const returnTone = signedTone(sessionReturnPct);
+    if (returnTone === 'pos') liveReturnEl?.classList.add('value-pos');
+    if (returnTone === 'neg') liveReturnEl?.classList.add('value-neg');
+
+    setHidden(liveSnapshotEl, false);
+  } else {
+    setHidden(liveSnapshotEl, true);
+  }
+
+  renderPriceTicker(state.marksByPair);
+  renderBackendPositions(state);
 }
 
 async function getInitialState() {

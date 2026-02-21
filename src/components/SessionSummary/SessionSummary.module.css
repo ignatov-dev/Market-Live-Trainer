@@ -1,0 +1,84 @@
+.title {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  opacity: 0.82;
+  font-weight: 600;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.resetBtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  color: rgba(16, 38, 76, 0.72);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.resetBtn:hover {
+  color: rgba(12, 30, 62, 0.95);
+}
+
+.resetBtn:focus-visible {
+  outline: 2px solid rgba(31, 122, 255, 0.3);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 10px;
+}
+
+.grid p {
+  margin: 0;
+  padding: 7px 8px;
+  border-radius: 12px;
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  display: grid;
+  gap: 2px;
+}
+
+.grid span {
+  font-size: 10px;
+  opacity: 0.76;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.grid strong {
+  font-size: 13px;
+  font-weight: 620;
+  line-height: 1.25;
+}
+
+.valuePos {
+  color: var(--success);
+}
+
+.valueNeg {
+  color: var(--danger);
+}

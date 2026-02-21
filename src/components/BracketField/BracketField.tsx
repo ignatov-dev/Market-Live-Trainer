@@ -1,3 +1,18 @@
+import React from 'react';
+
+interface Props {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  pnlText?: string | null;
+  pnlTone?: 'pos' | 'neg' | 'neutral';
+  disabled?: boolean;
+  readOnly?: boolean;
+  step?: string;
+  min?: string;
+}
+
 export default function BracketField({
   id,
   label,
@@ -9,7 +24,7 @@ export default function BracketField({
   readOnly = false,
   step = '0.01',
   min = '0.01',
-}) {
+}: Props) {
   return (
     <label htmlFor={id}>
       {label}

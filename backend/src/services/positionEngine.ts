@@ -1,6 +1,8 @@
-import type { Position, PositionCloseReason, PriceTick } from '../types/domain.js';
+import type { Position, PositionCloseReason, PositionPnlUpdate, PriceTick } from '../types/domain.js';
 import { PositionRepository } from '../repositories/positionRepository.js';
 import { RealtimeGateway } from './realtimeGateway.js';
+
+const ESTIMATED_CLOSE_FEE_RATE = 0.0004;
 
 export class PositionEngine {
   private readonly openBySymbol = new Map<string, Map<string, Position>>();
@@ -39,6 +41,20 @@ export class PositionEngine {
     }
   }
 
+  resetUser(userId: string): void {
+    for (const [symbol, bucket] of this.openBySymbol) {
+      for (const [positionId, position] of bucket) {
+        if (position.userId === userId) {
+          bucket.delete(positionId);
+        }
+      }
+
+      if (bucket.size === 0) {
+        this.openBySymbol.delete(symbol);
+      }
+    }
+  }
+
   async onTick(tick: PriceTick): Promise<void> {
     const bucket = this.openBySymbol.get(tick.symbol);
     if (!bucket || bucket.size === 0) {
@@ -70,6 +86,52 @@ export class PositionEngine {
         position: closed,
         source: 'engine',
       });
+      const account = await this.repository.getOrCreateTradingAccount(closed.userId);
+      this.realtime.broadcastAccountBalance(account, 'engine');
+    }
+
+    const remaining = this.openBySymbol.get(tick.symbol);
+    if (!remaining || remaining.size === 0) {
+      return;
+    }
+
+    this.broadcastOpenPositionPnl(tick, Array.from(remaining.values()));
+  }
+
+  private broadcastOpenPositionPnl(tick: PriceTick, positions: Position[]): void {
+    const updatesByUser = new Map<string, PositionPnlUpdate[]>();
+
+    for (const position of positions) {
+      const direction = position.side === 'long' ? 1 : -1;
+      const grossPnl = (tick.price - position.entryPrice) * position.quantity * direction;
+      const paidOpenFee = position.entryPrice * position.quantity * ESTIMATED_CLOSE_FEE_RATE;
+      const estimatedCloseFee = tick.price * position.quantity * ESTIMATED_CLOSE_FEE_RATE;
+      const update: PositionPnlUpdate = {
+        positionId: position.id,
+        symbol: position.symbol,
+        side: position.side,
+        quantity: position.quantity,
+        entryPrice: position.entryPrice,
+        markPrice: tick.price,
+        unrealizedPnl: grossPnl,
+        paidOpenFee,
+        estimatedCloseFee,
+        unrealizedNetPnl: grossPnl - estimatedCloseFee,
+        unrealizedTotalNetPnl: grossPnl - estimatedCloseFee - paidOpenFee,
+      };
+
+      const existing = updatesByUser.get(position.userId);
+      if (existing) {
+        existing.push(update);
+      } else {
+        updatesByUser.set(position.userId, [update]);
+      }
+    }
+
+    for (const [userId, userUpdates] of updatesByUser) {
+      for (const update of userUpdates) {
+        this.realtime.broadcastPositionPnl(userId, tick.time, update);
+      }
     }
   }
 

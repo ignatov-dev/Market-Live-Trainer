@@ -13,6 +13,7 @@ export interface Position {
   stopLoss: number | null;
   status: PositionStatus;
   closePrice: number | null;
+  closePnl: number | null;
   closeReason: PositionCloseReason | null;
   createdAt: Date;
   updatedAt: Date;
@@ -46,4 +47,26 @@ export interface PositionEvent {
   type: 'position.closed' | 'position.created';
   position: Position;
   source: 'engine' | 'api';
+}
+
+export interface PositionPnlUpdate {
+  positionId: string;
+  symbol: string;
+  side: PositionSide;
+  quantity: number;
+  entryPrice: number;
+  markPrice: number;
+  unrealizedPnl: number;
+  paidOpenFee: number;
+  estimatedCloseFee: number;
+  unrealizedNetPnl: number;
+  unrealizedTotalNetPnl: number;
+}
+
+export interface TradingAccount {
+  userId: string;
+  initialBalance: number;
+  cashBalance: number;
+  createdAt: Date;
+  updatedAt: Date;
 }

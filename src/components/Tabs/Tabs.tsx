@@ -2,6 +2,28 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { motion } from 'framer-motion';
 import styles from './Tabs.module.css';
 
+interface TabItem {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+interface IndicatorRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+interface Props {
+  items: TabItem[];
+  value: string;
+  onChange: (value: string) => void;
+  ariaLabel?: string;
+  className?: string;
+  disabled?: boolean;
+}
+
 export default function Tabs({
   items,
   value,
@@ -9,12 +31,12 @@ export default function Tabs({
   ariaLabel = 'Tabs',
   className = '',
   disabled = false,
-}) {
-  const containerRef = useRef(null);
-  const tabRefs = useRef(new Map());
-  const [indicatorRect, setIndicatorRect] = useState(null);
+}: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const [indicatorRect, setIndicatorRect] = useState<IndicatorRect | null>(null);
 
-  const setTabRef = useCallback((tabValue, node) => {
+  const setTabRef = useCallback((tabValue: string, node: HTMLButtonElement | null) => {
     if (node) {
       tabRefs.current.set(tabValue, node);
       return;
@@ -33,7 +55,7 @@ export default function Tabs({
 
     const containerRect = container.getBoundingClientRect();
     const activeRect = activeTab.getBoundingClientRect();
-    const nextRect = {
+    const nextRect: IndicatorRect = {
       left: activeRect.left - containerRect.left,
       top: activeRect.top - containerRect.top,
       width: activeRect.width,

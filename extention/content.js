@@ -1,4 +1,3 @@
-const APP_STORAGE_KEY = 'market-live-session-v1';
 const APP_BRIDGE_TYPE = 'MARKET_LIVE_SESSION_SYNC';
 const APP_STATE_SYNC_INTERVAL_MS = 2000;
 const APP_STATE_HEARTBEAT_MS = 15000;
@@ -10,42 +9,6 @@ let lastSentAt = 0;
 let syncTimer = null;
 let observer = null;
 let lastBridgeSnapshot = null;
-
-function getSnapshotSequence(snapshot) {
-  if (!snapshot || typeof snapshot !== 'object') {
-    return 0;
-  }
-  const sequence = Number(snapshot.sequence);
-  return Number.isFinite(sequence) && sequence > 0 ? sequence : 0;
-}
-
-function pickLatestSnapshot(primary, secondary) {
-  if (!primary) {
-    return secondary ?? null;
-  }
-  if (!secondary) {
-    return primary;
-  }
-  return getSnapshotSequence(secondary) > getSnapshotSequence(primary) ? secondary : primary;
-}
-
-function readSessionSnapshot() {
-  try {
-    const raw = window.localStorage.getItem(APP_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') {
-      return null;
-    }
-
-    return parsed;
-  } catch {
-    return null;
-  }
-}
 
 function normalizePositions(rawPositions) {
   if (!Array.isArray(rawPositions)) {
@@ -71,7 +34,8 @@ function normalizePositions(rawPositions) {
       }
 
       return {
-        id: typeof position?.id === 'string' ? position.id : `pos-${index}`,
+        id: typeof position?.id === 'string' ? position.id : (position?.id ?? `pos-${index}`),
+        backendPositionId: position?.backendPositionId || null,
         pair,
         side,
         qty,
@@ -83,8 +47,7 @@ function normalizePositions(rawPositions) {
 }
 
 function buildPayload(snapshotOverride = null) {
-  const localSnapshot = readSessionSnapshot();
-  const snapshot = snapshotOverride ?? pickLatestSnapshot(localSnapshot, lastBridgeSnapshot);
+  const snapshot = snapshotOverride ?? lastBridgeSnapshot;
   if (!snapshot) {
     return null;
   }
@@ -98,11 +61,22 @@ function buildPayload(snapshotOverride = null) {
     return null;
   }
 
+  const pendingOrders = Array.isArray(snapshot.pendingOrders) ? snapshot.pendingOrders : [];
+  let pendingMargin = 0;
+  for (const order of pendingOrders) {
+    const p = Number(order.limitPrice || 0);
+    const q = Number(order.qty || 0);
+    if (p > 0 && q > 0) {
+      pendingMargin += (p * q); // Assume LEVERAGE=1
+    }
+  }
+
   return {
     sessionBalance,
-    initialBalance: INITIAL_BALANCE,
-    feeRate: FEE_RATE,
+    initialBalance: Number.isFinite(Number(snapshot.initialBalance)) ? Number(snapshot.initialBalance) : INITIAL_BALANCE,
+    feeRate: Number.isFinite(Number(snapshot.feeRate)) ? Number(snapshot.feeRate) : FEE_RATE,
     positions: normalizePositions(snapshot.positions),
+    pendingOrders: Array.isArray(snapshot.pendingOrders) ? snapshot.pendingOrders : [],
     syncedAt: Date.now(),
   };
 }
@@ -114,6 +88,7 @@ function hashPayload(payload) {
       initialBalance: payload.initialBalance,
       feeRate: payload.feeRate,
       positions: payload.positions,
+      pendingOrders: payload.pendingOrders,
     });
   } catch {
     return '';
@@ -135,10 +110,14 @@ function sendState(force = false, snapshotOverride = null) {
     return;
   }
 
+  const match = document.cookie.match(new RegExp('(^| )mlt_auth_token=([^;]+)'));
+  const token = match ? decodeURIComponent(match[2]) : null;
+
   chrome.runtime.sendMessage(
     {
       type: 'APP_SESSION_SYNC',
       payload,
+      token,
     },
     () => {
       if (chrome.runtime.lastError) {
@@ -158,7 +137,27 @@ function handleBridgeMessage(event) {
   }
 
   const data = event.data;
-  if (!data || typeof data !== 'object' || data.type !== APP_BRIDGE_TYPE || !data.payload) {
+  if (!data || typeof data !== 'object') {
+    return;
+  }
+
+  if (data.type === 'MLT_AUTH_CHANGED') {
+    let token = data.token;
+    if (!token) {
+      const match = document.cookie.match(new RegExp('(^| )mlt_auth_token=([^;]+)'));
+      token = match ? decodeURIComponent(match[2]) : null;
+    }
+
+    chrome.runtime.sendMessage(
+      { type: 'AUTH_REFRESH', origin: window.location.origin, token },
+      () => {
+        void chrome.runtime.lastError;
+      },
+    );
+    return;
+  }
+
+  if (data.type !== APP_BRIDGE_TYPE || !data.payload) {
     return;
   }
 
@@ -174,6 +173,17 @@ function startSync() {
   }
 
   sendState(true);
+
+  const match = document.cookie.match(new RegExp('(^| )mlt_auth_token=([^;]+)'));
+  const token = match ? decodeURIComponent(match[2]) : null;
+
+  chrome.runtime.sendMessage(
+    { type: 'AUTH_REFRESH', origin: window.location.origin, token },
+    () => {
+      // Ignore response — background handles it
+      void chrome.runtime.lastError;
+    },
+  );
 
   syncTimer = window.setInterval(() => {
     sendState(false);
@@ -191,11 +201,6 @@ function startSync() {
 
   window.addEventListener('focus', () => sendState(true));
   window.addEventListener('message', handleBridgeMessage);
-  window.addEventListener('storage', (event) => {
-    if (event.key === APP_STORAGE_KEY) {
-      sendState(true);
-    }
-  });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       sendState(true);

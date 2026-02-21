@@ -1,7 +1,15 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import styles from './Modal.module.css';
+
+interface Props {
+  isOpen: boolean;
+  title: string;
+  onClose?: () => void;
+  children?: React.ReactNode;
+  closeLabel?: string;
+}
 
 export default function Modal({
   isOpen,
@@ -9,14 +17,14 @@ export default function Modal({
   onClose,
   children,
   closeLabel = 'Close',
-}) {
+}: Props) {
   useEffect(() => {
     if (!isOpen) {
       return undefined;
     }
 
     const previousOverflow = document.body.style.overflow;
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose?.();
       }
@@ -44,7 +52,7 @@ export default function Modal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          onMouseDown={(event) => {
+          onMouseDown={(event: React.MouseEvent<HTMLDivElement>) => {
             if (event.target === event.currentTarget) {
               onClose?.();
             }

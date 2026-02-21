@@ -5,16 +5,15 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(15, 23, 42, 0.34);
-  backdrop-filter: blur(6px);
+  background: rgba(16, 26, 42, 0.34);
+  backdrop-filter: blur(4px);
 }
 
 .panel {
   width: min(460px, 100%);
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.92) 0%, rgba(241, 248, 255, 0.86) 100%);
-  box-shadow: 0 18px 44px rgba(16, 24, 40, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  border-radius: 12px;
+  border: 1px solid rgba(149, 169, 199, 0.56);
+  background: #ffffff;
   overflow: hidden;
 }
 
@@ -23,31 +22,36 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 18px 20px 10px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgba(176, 194, 218, 0.42);
 }
 
 .title {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 620;
-  color: var(--ink);
+  color: #223753;
 }
 
 .closeButton {
   appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
+  border: 1px solid rgba(137, 160, 194, 0.5);
+  background: #ffffff;
+  color: #506380;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
-  padding: 0;
+  font-weight: 600;
+  padding: 6px 9px;
+  border-radius: 8px;
+  transition: border-color 160ms ease, background-color 160ms ease;
 }
 
 .closeButton:hover {
-  color: var(--ink);
+  border-color: rgba(96, 132, 186, 0.62);
+  background: #f4f7fc;
 }
 
 .body {
-  padding: 0 20px 20px;
+  padding: 12px 16px 16px;
 }

@@ -1,11 +1,11 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { PositionRepository } from '../repositories/positionRepository.js';
 import { PositionEngine } from '../services/positionEngine.js';
 import { RealtimeGateway } from '../services/realtimeGateway.js';
+import { AuthError, AuthService } from '../services/authService.js';
 
 const createPositionSchema = z.object({
-  userId: z.string().min(1),
   symbol: z.string().min(3),
   side: z.enum(['long', 'short']),
   quantity: z.number().positive(),
@@ -15,24 +15,17 @@ const createPositionSchema = z.object({
 });
 
 const closePositionSchema = z.object({
-  userId: z.string().min(1),
   closePrice: z.number().positive(),
   reason: z.enum(['manual', 'system']).default('manual'),
 });
 
 const updateBracketsSchema = z.object({
-  userId: z.string().min(1),
   takeProfit: z.number().positive().nullable(),
   stopLoss: z.number().positive().nullable(),
 });
 
 const listPositionsQuerySchema = z.object({
-  userId: z.string().min(1),
   status: z.enum(['open', 'closed']).optional(),
-});
-
-const listClosedPositionsQuerySchema = z.object({
-  userId: z.string().min(1),
 });
 
 function validateBrackets(
@@ -71,12 +64,38 @@ export function registerPositionRoutes(
     repository: PositionRepository;
     engine: PositionEngine;
     realtime: RealtimeGateway;
+    auth: AuthService;
     subscribeToSymbol: (symbol: string) => void;
   },
 ): void {
-  const { repository, engine, realtime, subscribeToSymbol } = dependencies;
+  const { repository, engine, realtime, auth, subscribeToSymbol } = dependencies;
+
+  const requireUser = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<string | null> => {
+    const token = auth.extractBearerToken(request.headers.authorization);
+    if (!token) {
+      await reply.code(401).send({ error: 'Missing bearer token.' });
+      return null;
+    }
+
+    try {
+      const identity = await auth.verifyAccessToken(token);
+      return identity.userId;
+    } catch (error) {
+      const message = error instanceof AuthError ? error.message : 'Invalid token.';
+      await reply.code(401).send({ error: message });
+      return null;
+    }
+  };
 
   app.post('/api/positions', async (request, reply) => {
+    const userId = await requireUser(request, reply);
+    if (!userId) {
+      return;
+    }
+
     const parsed = createPositionSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.flatten() });
@@ -92,15 +111,29 @@ export function registerPositionRoutes(
       return reply.code(400).send({ error });
     }
 
-    const position = await repository.createPosition({
-      userId: parsed.data.userId,
-      symbol: parsed.data.symbol.toUpperCase(),
-      side: parsed.data.side,
-      quantity: parsed.data.quantity,
-      entryPrice: parsed.data.entryPrice,
-      takeProfit: parsed.data.takeProfit,
-      stopLoss: parsed.data.stopLoss,
-    });
+    const position = await (async () => {
+      try {
+        return await repository.createPosition({
+          userId,
+          symbol: parsed.data.symbol.toUpperCase(),
+          side: parsed.data.side,
+          quantity: parsed.data.quantity,
+          entryPrice: parsed.data.entryPrice,
+          takeProfit: parsed.data.takeProfit,
+          stopLoss: parsed.data.stopLoss,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes('Insufficient account balance')) {
+          await reply.code(400).send({ error: message });
+          return null;
+        }
+        throw error;
+      }
+    })();
+    if (!position) {
+      return;
+    }
 
     engine.register(position);
     subscribeToSymbol(position.symbol);
@@ -109,31 +142,68 @@ export function registerPositionRoutes(
       position,
       source: 'api',
     });
+    const account = await repository.getOrCreateTradingAccount(userId);
+    realtime.broadcastAccountBalance(account, 'api');
 
     return reply.code(201).send({ data: position });
   });
 
   app.get('/api/positions', async (request, reply) => {
+    const userId = await requireUser(request, reply);
+    if (!userId) {
+      return;
+    }
+
     const parsed = listPositionsQuerySchema.safeParse(request.query);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.flatten() });
     }
 
-    const positions = await repository.listPositions(parsed.data.userId, parsed.data.status);
+    const positions = await repository.listPositions(userId, parsed.data.status);
     return reply.send({ data: positions });
   });
 
   app.get('/api/positions/closed', async (request, reply) => {
-    const parsed = listClosedPositionsQuerySchema.safeParse(request.query);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: parsed.error.flatten() });
+    const userId = await requireUser(request, reply);
+    if (!userId) {
+      return;
     }
 
-    const positions = await repository.listPositions(parsed.data.userId, 'closed');
+    const positions = await repository.listPositions(userId, 'closed');
     return reply.send({ data: positions });
   });
 
+  app.get('/api/account', async (request, reply) => {
+    const userId = await requireUser(request, reply);
+    if (!userId) {
+      return;
+    }
+
+    const account = await repository.getOrCreateTradingAccount(userId);
+    return reply.send({ data: account });
+  });
+
+  const handleSessionReset = async (request: FastifyRequest, reply: FastifyReply) => {
+    const userId = await requireUser(request, reply);
+    if (!userId) {
+      return;
+    }
+
+    const account = await repository.resetUserSession(userId);
+    engine.resetUser(userId);
+    realtime.broadcastAccountBalance(account, 'system');
+    return reply.send({ data: account });
+  };
+
+  app.post('/api/session-reset', handleSessionReset);
+  app.post('/session-reset', handleSessionReset);
+
   app.patch('/api/positions/:id/brackets', async (request, reply) => {
+    const userId = await requireUser(request, reply);
+    if (!userId) {
+      return;
+    }
+
     const params = z.object({ id: z.string().uuid() }).safeParse(request.params);
     if (!params.success) {
       return reply.code(400).send({ error: params.error.flatten() });
@@ -144,7 +214,7 @@ export function registerPositionRoutes(
       return reply.code(400).send({ error: parsed.error.flatten() });
     }
 
-    const existing = await repository.getPositionById(params.data.id, parsed.data.userId);
+    const existing = await repository.getPositionById(params.data.id, userId);
     if (!existing) {
       return reply.code(404).send({ error: 'Position not found.' });
     }
@@ -164,7 +234,7 @@ export function registerPositionRoutes(
     }
 
     const updated = await repository.updatePositionBracketsIfOpen(params.data.id, {
-      userId: parsed.data.userId,
+      userId,
       takeProfit: parsed.data.takeProfit,
       stopLoss: parsed.data.stopLoss,
     });
@@ -178,6 +248,11 @@ export function registerPositionRoutes(
   });
 
   app.post('/api/positions/:id/close', async (request, reply) => {
+    const userId = await requireUser(request, reply);
+    if (!userId) {
+      return;
+    }
+
     const params = z.object({ id: z.string().uuid() }).safeParse(request.params);
     if (!params.success) {
       return reply.code(400).send({ error: params.error.flatten() });
@@ -192,7 +267,7 @@ export function registerPositionRoutes(
       closePrice: parsed.data.closePrice,
       closeReason: parsed.data.reason,
       closedAt: new Date(),
-      userId: parsed.data.userId,
+      userId,
     });
 
     if (!closed) {
@@ -205,6 +280,8 @@ export function registerPositionRoutes(
       position: closed,
       source: 'api',
     });
+    const account = await repository.getOrCreateTradingAccount(userId);
+    realtime.broadcastAccountBalance(account, 'api');
 
     return reply.send({ data: closed });
   });

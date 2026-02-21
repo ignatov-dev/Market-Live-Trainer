@@ -45,8 +45,11 @@ If you want to run only React locally and send all position API/WebSocket traffi
 
 ```bash
 VITE_BACKEND_PROXY_TARGET=https://your-render-service.onrender.com
-VITE_BACKEND_USER_ID=demo-user
+VITE_NEON_AUTH_URL=https://your-neon-auth-host/auth
+VITE_BACKEND_AUTH_TOKEN=
 ```
+
+`VITE_BACKEND_AUTH_TOKEN` can stay empty if you sign in via the in-app auth form.
 
 2. Start frontend only:
 

@@ -1,0 +1,70 @@
+.chartStage {
+  margin-top: 12px;
+  position: relative;
+}
+
+.chartWrap {
+  position: relative;
+  border: 1px solid rgba(152, 172, 201, 0.5);
+  border-radius: 12px;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  height: 360px;
+  background: #f8fbff;
+}
+
+.chartWrap canvas {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.chartOverlayControls {
+  position: absolute;
+  top: 12px;
+  right: 62px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chartResetScaleBtn,
+.chartPanRightBtn {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(133, 158, 195, 0.5);
+  background: #ffffff;
+  color: #425777;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+
+.chartResetScaleBtn:hover,
+.chartPanRightBtn:hover {
+  border-color: rgba(89, 126, 183, 0.62);
+  color: #263c5c;
+}
+
+.chartResetScaleBtn:focus-visible,
+.chartPanRightBtn:focus-visible {
+  outline: 2px solid rgba(42, 111, 219, 0.28);
+  outline-offset: 1px;
+}
+
+.chartResetScaleBtn svg,
+.chartPanRightBtn svg {
+  width: 14px;
+  height: 14px;
+}

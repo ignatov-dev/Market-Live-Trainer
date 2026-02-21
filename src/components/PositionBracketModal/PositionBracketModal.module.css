@@ -1,0 +1,70 @@
+.form {
+  display: grid;
+  gap: 10px;
+}
+
+.form label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+  color: #60718b;
+  font-weight: 600;
+}
+
+.meta {
+  margin: 0;
+  color: #5b6d85;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.actions {
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn {
+  appearance: none;
+  border-radius: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: border-color 160ms ease, background-color 160ms ease, opacity 160ms ease;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btnSave {
+  color: #f7faff;
+  background: var(--brand);
+  border-color: rgba(35, 87, 170, 0.42);
+}
+
+.btnSave:hover:not(:disabled) {
+  background: var(--brand-strong);
+}
+
+.btnDelete {
+  background: rgba(var(--danger-rgb), 0.08);
+  color: #bb3b51;
+  border-color: rgba(var(--danger-rgb), 0.28);
+}
+
+.btnDelete:hover:not(:disabled) {
+  background: rgba(var(--danger-rgb), 0.12);
+}
+
+.fieldError {
+  margin: -2px 0 0;
+  color: #bb3b51;
+  font-size: 12px;
+  line-height: 1.4;
+}

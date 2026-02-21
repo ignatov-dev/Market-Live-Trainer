@@ -1,0 +1,15 @@
+.subpanel {
+  margin-top: 14px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 30%);
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}

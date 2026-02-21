@@ -1,0 +1,58 @@
+.tooltip {
+  position: absolute;
+  z-index: 24;
+  pointer-events: none;
+  min-width: 150px;
+  max-width: 240px;
+  transform: translate(-50%, calc(-100% - 12px));
+  border-radius: 8px;
+  padding: 8px 9px;
+  border: 1px solid rgba(144, 165, 196, 0.56);
+  background: #ffffff;
+}
+
+.title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #223753;
+}
+
+.line {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #3d5374;
+  line-height: 1.3;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lineLabel {
+  color: #697a92;
+  flex: 0 0 auto;
+}
+
+.lineValue {
+  flex: 1;
+  text-align: right;
+  color: #3d5374;
+}
+
+.entry {
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px dashed rgba(145, 170, 205, 0.48);
+}
+
+.entry:first-of-type {
+  margin-top: 6px;
+}
+
+.entryTitle {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #223753;
+}

@@ -1,0 +1,23 @@
+.subpanel {
+  margin-top: 14px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 248px);
+  gap: 10px;
+  justify-content: space-between;
+}
+
+@media (max-width: 1120px) {
+  .cards {
+    grid-template-columns: repeat(2, 248px);
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}

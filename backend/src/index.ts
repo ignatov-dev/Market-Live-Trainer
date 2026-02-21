@@ -7,7 +7,9 @@ import { PositionRepository } from './repositories/positionRepository.js';
 import { CoinbaseTickerService } from './services/coinbaseTickerService.js';
 import { PositionEngine } from './services/positionEngine.js';
 import { RealtimeGateway } from './services/realtimeGateway.js';
+import { AuthService } from './services/authService.js';
 import { registerPositionRoutes } from './routes/positionsRoutes.js';
+import { registerMarketRoutes } from './routes/marketRoutes.js';
 
 async function main(): Promise<void> {
   await runMigrations();
@@ -19,8 +21,27 @@ async function main(): Promise<void> {
     credentials: true,
   });
 
+  if (!config.authJwksUrl) {
+    throw new Error('AUTH_JWKS_URL is required to start backend auth.');
+  }
+
+  let authJwksUrl: string;
+  try {
+    authJwksUrl = new URL(config.authJwksUrl).toString();
+  } catch {
+    throw new Error('AUTH_JWKS_URL must be a valid absolute URL.');
+  }
+
+  const auth = new AuthService({
+    jwksUrl: authJwksUrl,
+    issuer: config.authIssuer,
+    audience: config.authAudience,
+    clockSkewSeconds: config.authClockSkewSeconds,
+    jwksCacheTtlMs: config.authJwksCacheTtlMs,
+  });
+
   const repository = new PositionRepository(pool);
-  const realtime = new RealtimeGateway(app.server);
+  const realtime = new RealtimeGateway(app.server, auth);
   const engine = new PositionEngine(repository, realtime);
 
   await engine.bootstrap();
@@ -51,6 +72,8 @@ async function main(): Promise<void> {
   });
 
   ticker.on('tick', (tick) => {
+    realtime.broadcastMarketTick(tick);
+
     void engine.onTick(tick).catch((error) => {
       app.log.error({ err: error, tick }, 'Failed to process tick');
     });
@@ -60,8 +83,10 @@ async function main(): Promise<void> {
     repository,
     engine,
     realtime,
+    auth,
     subscribeToSymbol: (symbol) => ticker.addProduct(symbol),
   });
+  registerMarketRoutes(app);
 
   app.get('/health', async () => ({
     ok: true,

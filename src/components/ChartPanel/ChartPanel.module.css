@@ -1,0 +1,86 @@
+.chartPanelHead {
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.chartPairsNav,
+.chartTimeframesNav {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-radius: 999px;
+  background: #f8fbff;
+  padding: 3px;
+}
+
+.chartPairsNav::-webkit-scrollbar,
+.chartTimeframesNav::-webkit-scrollbar {
+  display: none;
+}
+
+.chartTabItem {
+  display: inline-flex;
+  align-items: center;
+}
+
+.chartTabDivider {
+  width: 1px;
+  height: 12px;
+  margin: 0 1px;
+  background: rgba(149, 169, 199, 0.45);
+  pointer-events: none;
+}
+
+.chartPairTab,
+.chartTimeframeTab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #65758e;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 999px;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.chartPairTab {
+  padding: 7px 11px;
+}
+
+.chartTimeframeTab {
+  padding: 6px 10px;
+}
+
+.chartPairTab:hover,
+.chartTimeframeTab:hover {
+  color: #2a405f;
+}
+
+.chartPairTab.isActive,
+.chartTimeframeTab.isActive {
+  color: #1f4f96;
+}
+
+.inlineControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+
+@media (max-width: 760px) {
+  .chartPanelHead {
+    align-items: flex-start;
+  }
+
+  .inlineControls {
+    width: 100%;
+  }
+}

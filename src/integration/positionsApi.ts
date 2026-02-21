@@ -12,14 +12,22 @@ export interface Position {
   stopLoss: number | null;
   status: PositionStatus;
   closePrice: number | null;
+  closePnl: number | null;
   closeReason: string | null;
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;
 }
 
-export interface CreatePositionPayload {
+export interface TradingAccount {
   userId: string;
+  initialBalance: number;
+  cashBalance: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePositionPayload {
   symbol: string;
   side: PositionSide;
   quantity: number;
@@ -29,6 +37,21 @@ export interface CreatePositionPayload {
 }
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
+const INITIAL_API_AUTH_TOKEN = (import.meta.env.VITE_BACKEND_AUTH_TOKEN ?? '').trim();
+let runtimeApiAuthToken = INITIAL_API_AUTH_TOKEN;
+
+function resolveApiAuthToken(): string {
+  return runtimeApiAuthToken.trim();
+}
+
+export function setBackendAuthToken(token: string | null | undefined): void {
+  runtimeApiAuthToken = typeof token === 'string' ? token.trim() : '';
+}
+
+export function getBackendAuthToken(): string | null {
+  const token = resolveApiAuthToken();
+  return token.length > 0 ? token : null;
+}
 
 function buildApiUrl(path: string): string {
   if (API_BASE_URL.length > 0) {
@@ -39,11 +62,21 @@ function buildApiUrl(path: string): string {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const authToken = resolveApiAuthToken();
+  if (authToken.length === 0) {
+    throw new Error('Backend auth token is missing. Sign in first.');
+  }
+
+  const headers = new Headers(init?.headers);
+  headers.set('Authorization', `Bearer ${authToken}`);
+
+  const hasBody = init?.body !== undefined && init?.body !== null;
+  if (hasBody && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const response = await fetch(buildApiUrl(path), {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
+    headers,
     ...init,
   });
 
@@ -65,31 +98,41 @@ export async function createPosition(body: CreatePositionPayload): Promise<Posit
   return data.data;
 }
 
-export async function listPositions(userId: string, status?: PositionStatus): Promise<Position[]> {
-  const params = new URLSearchParams({ userId });
+export async function listPositions(status?: PositionStatus): Promise<Position[]> {
+  const params = new URLSearchParams();
   if (status) {
     params.set('status', status);
   }
 
-  const data = await request<{ data: Position[] }>(`/api/positions?${params.toString()}`);
+  const queryString = params.toString();
+  const data = await request<{ data: Position[] }>(queryString ? `/api/positions?${queryString}` : '/api/positions');
   return data.data;
 }
 
-export async function listClosedPositions(userId: string): Promise<Position[]> {
-  const params = new URLSearchParams({ userId });
-  const data = await request<{ data: Position[] }>(`/api/positions/closed?${params.toString()}`);
+export async function listClosedPositions(): Promise<Position[]> {
+  const data = await request<{ data: Position[] }>('/api/positions/closed');
+  return data.data;
+}
+
+export async function getTradingAccount(): Promise<TradingAccount> {
+  const data = await request<{ data: TradingAccount }>('/api/account');
+  return data.data;
+}
+
+export async function resetBackendSession(): Promise<TradingAccount> {
+  const data = await request<{ data: TradingAccount }>('/api/session-reset', {
+    method: 'POST',
+  });
   return data.data;
 }
 
 export async function closePosition(
-  userId: string,
   positionId: string,
   closePrice: number,
 ): Promise<Position> {
   const data = await request<{ data: Position }>(`/api/positions/${positionId}/close`, {
     method: 'POST',
     body: JSON.stringify({
-      userId,
       closePrice,
       reason: 'manual',
     }),
@@ -99,7 +142,6 @@ export async function closePosition(
 }
 
 export async function updatePositionBrackets(
-  userId: string,
   positionId: string,
   takeProfit: number | null,
   stopLoss: number | null,
@@ -107,7 +149,6 @@ export async function updatePositionBrackets(
   const data = await request<{ data: Position }>(`/api/positions/${positionId}/brackets`, {
     method: 'PATCH',
     body: JSON.stringify({
-      userId,
       takeProfit,
       stopLoss,
     }),
@@ -116,7 +157,12 @@ export async function updatePositionBrackets(
   return data.data;
 }
 
-export function backendWsUrl(userId: string): string {
+export function backendWsUrl(): string {
+  const authToken = resolveApiAuthToken();
+  if (authToken.length === 0) {
+    throw new Error('Backend auth token is missing. Sign in first.');
+  }
+
   const url = API_BASE_URL.length > 0
     ? new URL(API_BASE_URL)
     : new URL(
@@ -130,6 +176,70 @@ export function backendWsUrl(userId: string): string {
   }
 
   url.pathname = '/ws';
-  url.searchParams.set('userId', userId);
+  url.searchParams.set('token', authToken);
+  return url.toString();
+}
+
+export function backendPositionsWsUrl(): string {
+  const authToken = resolveApiAuthToken();
+  if (authToken.length === 0) {
+    throw new Error('Backend auth token is missing. Sign in first.');
+  }
+
+  const url = API_BASE_URL.length > 0
+    ? new URL(API_BASE_URL)
+    : new URL(
+      `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`,
+    );
+
+  if (url.protocol === 'http:') {
+    url.protocol = 'ws:';
+  } else if (url.protocol === 'https:') {
+    url.protocol = 'wss:';
+  }
+
+  url.pathname = '/ws/positions';
+  url.searchParams.set('token', authToken);
+  return url.toString();
+}
+
+export function backendMarketWsUrl(): string {
+  const url = API_BASE_URL.length > 0
+    ? new URL(API_BASE_URL)
+    : new URL(
+      `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`,
+    );
+
+  if (url.protocol === 'http:') {
+    url.protocol = 'ws:';
+  } else if (url.protocol === 'https:') {
+    url.protocol = 'wss:';
+  }
+
+  url.pathname = '/ws/market';
+  url.search = '';
+  return url.toString();
+}
+
+export function backendAccountWsUrl(): string {
+  const authToken = resolveApiAuthToken();
+  if (authToken.length === 0) {
+    throw new Error('Backend auth token is missing. Sign in first.');
+  }
+
+  const url = API_BASE_URL.length > 0
+    ? new URL(API_BASE_URL)
+    : new URL(
+      `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`,
+    );
+
+  if (url.protocol === 'http:') {
+    url.protocol = 'ws:';
+  } else if (url.protocol === 'https:') {
+    url.protocol = 'wss:';
+  }
+
+  url.pathname = '/ws/account';
+  url.searchParams.set('token', authToken);
   return url.toString();
 }

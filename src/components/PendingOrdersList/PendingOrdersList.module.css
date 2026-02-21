@@ -1,0 +1,59 @@
+.subpanel {
+  margin-top: 14px;
+}
+
+.listBox {
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  border-radius: 12px;
+  padding: 10px;
+  min-height: 92px;
+  max-height: 170px;
+  overflow: auto;
+  font-size: 13px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.56) 0%, rgba(244, 249, 255, 0.38) 100%);
+}
+
+.listItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(177, 196, 224, 0.4);
+  padding: 8px 0;
+  transition: all 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.listItem:hover {
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.listItem:last-child {
+  border-bottom: 0;
+}
+
+.listItem small {
+  color: var(--muted);
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.cancelBtn {
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(114, 136, 170, 0.28);
+  color: var(--ink);
+  box-shadow: 0 5px 14px rgba(66, 88, 127, 0.14);
+  border-radius: 12px;
+  padding: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cancelBtn:hover {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(72, 128, 218, 0.42);
+}
