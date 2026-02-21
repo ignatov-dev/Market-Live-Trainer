@@ -31,6 +31,7 @@ export function usePositionEvents({ authToken, onClosed, onCreated }: UsePositio
 
     let ws: WebSocket | null = null;
     let stopped = false;
+    let hiddenAt: number | null = null;
 
     const connect = () => {
       if (stopped) {
@@ -44,13 +45,16 @@ export function usePositionEvents({ authToken, onClosed, onCreated }: UsePositio
         return;
       }
 
-      ws = new WebSocket(wsUrl);
+      const socket = new WebSocket(wsUrl);
+      ws = socket;
 
-      ws.onopen = () => {
+      socket.onopen = () => {
+        if (ws !== socket) return;
         attemptsRef.current = 0;
       };
 
-      ws.onmessage = (message) => {
+      socket.onmessage = (message) => {
+        if (ws !== socket) return;
         try {
           const payload = JSON.parse(message.data as string) as { type?: string; position?: Position; source?: 'engine' | 'api' };
 
@@ -79,22 +83,48 @@ export function usePositionEvents({ authToken, onClosed, onCreated }: UsePositio
         }
       };
 
-      ws.onclose = () => {
+      socket.onclose = () => {
+        if (ws !== socket) {
+          return; // stale socket — visibility handler already reconnected
+        }
         if (stopped) {
           return;
         }
 
         const delay = Math.min(1000 * 2 ** attemptsRef.current, 30000);
         attemptsRef.current += 1;
-
         reconnectRef.current = setTimeout(connect, delay);
       };
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now();
+        return;
+      }
+      // Page became visible — reconnect if hidden long enough for the connection to have gone zombie
+      if (stopped || hiddenAt === null || Date.now() - hiddenAt < 30_000) {
+        return;
+      }
+      hiddenAt = null;
+      if (reconnectRef.current) {
+        clearTimeout(reconnectRef.current);
+        reconnectRef.current = null;
+      }
+      attemptsRef.current = 0;
+      // Null ws before closing so the stale onclose identity check bails early
+      const stale = ws;
+      ws = null;
+      stale?.close();
+      connect();
+    };
+
     connect();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       stopped = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       ws?.close();
       if (reconnectRef.current) {
         clearTimeout(reconnectRef.current);

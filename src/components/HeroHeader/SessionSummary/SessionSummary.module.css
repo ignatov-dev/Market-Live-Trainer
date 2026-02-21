@@ -46,10 +46,18 @@
   border-radius: 6px;
 }
 
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .grid {
+  flex: 1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px 10px;
+  align-content: start;
 }
 
 .grid p {
@@ -103,4 +111,22 @@
 
 .valueNeg {
   color: var(--danger);
+}
+
+.footer {
+  display: flex;
+  align-items: stretch;
+  margin-top: 8px;
+}
+
+.footer .resetBtn {
+  flex: 1;
+  text-align: center;
+  padding: 6px 4px;
+}
+
+.divider {
+  width: 1px;
+  background: rgba(16, 38, 76, 0.2);
+  flex-shrink: 0;
 }

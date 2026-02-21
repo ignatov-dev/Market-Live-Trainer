@@ -48,6 +48,7 @@ let backendWsReconnectAttempts = 0;
 
 let latestOrigin = AUTH_COOKIE_URL;
 let backendRefreshTimer = null;
+let lastMarketWsMessageAt = 0;
 
 function toFiniteNumber(value, fallback = null) {
   const parsed = Number(value);
@@ -781,6 +782,7 @@ function startMarketSocket() {
     if (localSessionId !== wsSessionId) {
       return;
     }
+    lastMarketWsMessageAt = Date.now();
 
     try {
       const payload = JSON.parse(event.data);
@@ -956,6 +958,23 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === REFRESH_ALARM_NAME) {
     void refreshMarksViaRest();
     queueBackendRefresh();
+
+    // Detect zombie market socket: appears OPEN but no message received in 90s
+    // (Coinbase ticks arrive every ~1s, so 90s silence = definitely dead)
+    const marketIsZombie = ws
+      && ws.readyState === WebSocket.OPEN
+      && lastMarketWsMessageAt > 0
+      && Date.now() - lastMarketWsMessageAt > 90_000;
+
+    if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING || marketIsZombie) {
+      stopMarketSocket();
+      startMarketSocket();
+    }
+
+    // Restart backend sockets if they were closed (e.g. service worker was terminated)
+    if (backendAuthToken && (!backendWsStructural || backendWsStructural.readyState === WebSocket.CLOSED || backendWsStructural.readyState === WebSocket.CLOSING)) {
+      startBackendSocket();
+    }
   }
 });
 
@@ -1025,6 +1044,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     if (type === 'POPUP_OPEN') {
       await ensureAlarm();
+
+      // If market socket hasn't received a message in 30s it's likely a zombie (after sleep).
+      // Force-close everything so startMarketSocket / startBackendSocket create fresh connections.
+      const isStale = !lastMarketWsMessageAt || Date.now() - lastMarketWsMessageAt > 30_000;
+      if (isStale) {
+        stopMarketSocket();
+        stopBackendSocket();
+      }
+
       startMarketSocket();
       await refreshAuthToken();
       if (backendAuthToken) {

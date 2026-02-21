@@ -57,20 +57,7 @@ export default function SessionSummary({
     session.sequence > 1;
 
   return (
-    <>
-      <div className={styles.header}>
-        <p className={styles.title}>Session Snapshot</p>
-        <div className={styles.headerActions}>
-          {canResetSession ? (
-            <button type="button" className={styles.resetBtn} onClick={resetSession}>
-              Reset session
-            </button>
-          ) : null}
-          <button type="button" className={styles.resetBtn} onClick={onSignOut}>
-            Sign out
-          </button>
-        </div>
-      </div>
+    <div className={styles.root}>
       <div className={styles.grid}>
         <p>
           <span>Source</span>
@@ -104,6 +91,19 @@ export default function SessionSummary({
           <strong className={sessionReturn >= 0 ? styles.valuePos : styles.valueNeg}>{fmtPct(sessionReturn)}</strong>
         </p>
       </div>
-    </>
+      <div className={styles.footer}>
+        {canResetSession ? (
+          <>
+            <button type="button" className={styles.resetBtn} onClick={resetSession}>
+              Reset session
+            </button>
+            <span className={styles.divider} aria-hidden="true" />
+          </>
+        ) : null}
+        <button type="button" className={styles.resetBtn} onClick={onSignOut}>
+          Sign out
+        </button>
+      </div>
+    </div>
   );
 }

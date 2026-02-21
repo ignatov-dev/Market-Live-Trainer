@@ -113,6 +113,7 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
     let ws: WebSocket | null = null;
     let reconnectTimer: number | null = null;
     let reconnectAttempt = 0;
+    let hiddenAt: number | null = null;
 
     const connect = () => {
       if (isCancelled) {
@@ -126,14 +127,16 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      ws = new WebSocket(wsUrl);
+      const socket = new WebSocket(wsUrl);
+      ws = socket;
 
-      ws.onopen = () => {
+      socket.onopen = () => {
+        if (ws !== socket) return;
         reconnectAttempt = 0;
       };
 
-      ws.onmessage = (event: MessageEvent<string>) => {
-        if (isCancelled) {
+      socket.onmessage = (event: MessageEvent<string>) => {
+        if (ws !== socket || isCancelled) {
           return;
         }
 
@@ -174,7 +177,10 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
         }
       };
 
-      ws.onclose = () => {
+      socket.onclose = () => {
+        if (ws !== socket) {
+          return; // stale socket — visibility handler already reconnected
+        }
         if (isCancelled) {
           return;
         }
@@ -184,17 +190,39 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
         reconnectTimer = window.setTimeout(connect, delayMs);
       };
 
-      ws.onerror = () => {
-        if (ws && ws.readyState !== WebSocket.CLOSED) {
-          ws.close();
+      socket.onerror = () => {
+        if (socket.readyState !== WebSocket.CLOSED) {
+          socket.close();
         }
       };
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now();
+        return;
+      }
+      if (isCancelled || hiddenAt === null || Date.now() - hiddenAt < 30_000) {
+        return;
+      }
+      hiddenAt = null;
+      if (reconnectTimer !== null) {
+        window.clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      reconnectAttempt = 0;
+      const stale = ws;
+      ws = null;
+      stale?.close();
+      connect();
+    };
+
     connect();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       isCancelled = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (reconnectTimer) {
         window.clearTimeout(reconnectTimer);
       }

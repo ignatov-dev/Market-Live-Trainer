@@ -37,6 +37,7 @@ export function usePositionPnlEvents({ authToken, onPnl }: UsePositionPnlEventsA
 
     let ws: WebSocket | null = null;
     let stopped = false;
+    let hiddenAt: number | null = null;
 
     const connect = () => {
       if (stopped) {
@@ -50,13 +51,16 @@ export function usePositionPnlEvents({ authToken, onPnl }: UsePositionPnlEventsA
         return;
       }
 
-      ws = new WebSocket(wsUrl);
+      const socket = new WebSocket(wsUrl);
+      ws = socket;
 
-      ws.onopen = () => {
+      socket.onopen = () => {
+        if (ws !== socket) return;
         attemptsRef.current = 0;
       };
 
-      ws.onmessage = (message) => {
+      socket.onmessage = (message) => {
+        if (ws !== socket) return;
         try {
           const payload = JSON.parse(message.data as string) as {
             type?: string;
@@ -78,7 +82,10 @@ export function usePositionPnlEvents({ authToken, onPnl }: UsePositionPnlEventsA
         }
       };
 
-      ws.onclose = () => {
+      socket.onclose = () => {
+        if (ws !== socket) {
+          return; // stale socket — visibility handler already reconnected
+        }
         if (stopped) {
           return;
         }
@@ -89,10 +96,32 @@ export function usePositionPnlEvents({ authToken, onPnl }: UsePositionPnlEventsA
       };
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now();
+        return;
+      }
+      if (stopped || hiddenAt === null || Date.now() - hiddenAt < 30_000) {
+        return;
+      }
+      hiddenAt = null;
+      if (reconnectRef.current) {
+        clearTimeout(reconnectRef.current);
+        reconnectRef.current = null;
+      }
+      attemptsRef.current = 0;
+      const stale = ws;
+      ws = null;
+      stale?.close();
+      connect();
+    };
+
     connect();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       stopped = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       ws?.close();
       if (reconnectRef.current) {
         clearTimeout(reconnectRef.current);
