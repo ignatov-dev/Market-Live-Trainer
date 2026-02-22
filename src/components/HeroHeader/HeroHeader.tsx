@@ -4,6 +4,7 @@ import styles from './HeroHeader.module.css';
 import AuthPanel from './AuthPanel/AuthPanel';
 import SessionSummary from './SessionSummary/SessionSummary';
 import NewsTicker from './NewsTicker/NewsTicker';
+import Scoreboard from '../Scoreboard/Scoreboard';
 import type { SessionMetrics, Session, NewsItem } from '../../types/domain';
 
 type AuthMode = 'signup' | 'signin';
@@ -28,6 +29,7 @@ interface Props {
   pairLabel: string;
   authSessionEmail?: string | null;
   onSignOut: () => void;
+  authToken: string | null;
 }
 
 export default function HeroHeader({
@@ -50,6 +52,7 @@ export default function HeroHeader({
   pairLabel,
   authSessionEmail,
   onSignOut,
+  authToken,
 }: Props) {
   const { scrollY } = useScroll();
   const heroFadeOpacity = useTransform(scrollY, [0, 100, 160], [1, 0.6, 0]);
@@ -76,37 +79,43 @@ export default function HeroHeader({
   return (
     <header className={styles.hero}>
       <motion.div style={{ opacity: heroFadeOpacity }}>
-        <p className={styles.eyebrow}>Claude Code Challenge MVP</p>
-        <h1>Market Live Trainer</h1>
-        <p className={styles.subhead}>
-          Live Coinbase candles with timeframe switching, paper trading, and a rule-driven AI coach report.
-        </p>
+        <div className={styles.headline}>
+          <h1 className={styles.title}>Market Mentor</h1>
+          <p className={styles.eyebrow}>
+            Practice Today. Profit Tomorrow.
+          </p>
+        </div>
       </motion.div>
 
-      <motion.div className={styles.sessionSummary} style={{ opacity: heroFadeOpacity }}>
-        {!hasBackendAuth ? (
-          <AuthPanel
-            authMode={authMode}
-            authNameInput={authNameInput}
-            authEmailInput={authEmailInput}
-            authPasswordInput={authPasswordInput}
-            authError={authError}
-            isAuthSubmitting={isAuthSubmitting}
-            hasNeonAuthUrl={hasNeonAuthUrl}
-            onModeChange={onModeChange}
-            onNameChange={onNameChange}
-            onEmailChange={onEmailChange}
-            onPasswordChange={onPasswordChange}
-            onSubmit={onAuthSubmit}
-          />
-        ) : (
-          <SessionSummary
-            metrics={metrics}
-            session={session}
-            authSessionEmail={authSessionEmail}
-            onSignOut={onSignOut}
-          />
-        )}
+      <motion.div className={styles.rightGroup} style={{ opacity: heroFadeOpacity }}>
+        <div className={styles.scoreboardCard}>
+          <Scoreboard authToken={authToken} />
+        </div>
+        <div className={styles.sessionSummary}>
+          {!hasBackendAuth ? (
+            <AuthPanel
+              authMode={authMode}
+              authNameInput={authNameInput}
+              authEmailInput={authEmailInput}
+              authPasswordInput={authPasswordInput}
+              authError={authError}
+              isAuthSubmitting={isAuthSubmitting}
+              hasNeonAuthUrl={hasNeonAuthUrl}
+              onModeChange={onModeChange}
+              onNameChange={onNameChange}
+              onEmailChange={onEmailChange}
+              onPasswordChange={onPasswordChange}
+              onSubmit={onAuthSubmit}
+            />
+          ) : (
+            <SessionSummary
+              metrics={metrics}
+              session={session}
+              authSessionEmail={authSessionEmail}
+              onSignOut={onSignOut}
+            />
+          )}
+        </div>
       </motion.div>
 
       <NewsTicker items={tickerItems} style={{ opacity: heroFadeOpacity }} />

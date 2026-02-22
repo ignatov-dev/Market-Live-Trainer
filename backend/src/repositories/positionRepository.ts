@@ -26,6 +26,8 @@ interface PositionRow {
   close_price: string | null;
   close_pnl: string | null;
   close_reason: 'take_profit' | 'stop_loss' | 'manual' | 'system' | null;
+  balance_before: string | null;
+  balance_after: string | null;
   created_at: Date;
   updated_at: Date;
   closed_at: Date | null;
@@ -56,6 +58,8 @@ function toPosition(row: PositionRow): Position {
     closePrice: row.close_price === null ? null : Number(row.close_price),
     closePnl: row.close_pnl == null ? null : Number(row.close_pnl),
     closeReason: row.close_reason,
+    balanceBefore: row.balance_before === null ? null : Number(row.balance_before),
+    balanceAfter: row.balance_after === null ? null : Number(row.balance_after),
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     closedAt: row.closed_at === null ? null : new Date(row.closed_at),
@@ -295,6 +299,13 @@ export class PositionRepository {
         [opened.userId, safeClosePnl],
       );
       const updatedAccount = toTradingAccount(updatedAccountResult.rows[0]!);
+      const balanceAfter = updatedAccount.cashBalance;
+      const balanceBefore = balanceAfter - safeClosePnl;
+
+      await client.query(
+        'UPDATE positions SET balance_before = $1, balance_after = $2 WHERE id = $3',
+        [balanceBefore, balanceAfter, positionId],
+      );
 
       await client.query(
         `
@@ -306,14 +317,14 @@ export class PositionRepository {
           uuidv4(),
           opened.userId,
           safeClosePnl,
-          updatedAccount.cashBalance,
+          balanceAfter,
           positionId,
           JSON.stringify({ reason: input.closeReason }),
         ],
       );
 
       await client.query('COMMIT');
-      return closed;
+      return { ...closed, balanceBefore, balanceAfter };
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -389,6 +400,36 @@ export class PositionRepository {
     );
 
     return toTradingAccount(selected.rows[0]!);
+  }
+
+  async upsertUserName(userId: string, userName: string): Promise<void> {
+    await this.db.query(
+      'UPDATE trading_accounts SET user_name = $2 WHERE user_id = $1',
+      [userId, userName],
+    );
+  }
+
+  async listScoreboardRaw(): Promise<Array<{ userId: string; userName: string; initialBalance: number; cashBalance: number }>> {
+    const result = await this.db.query<{
+      user_id: string;
+      user_name: string | null;
+      initial_balance: string;
+      cash_balance: string;
+    }>(
+      `SELECT user_id, user_name, initial_balance, cash_balance
+       FROM trading_accounts
+       WHERE EXISTS (
+         SELECT 1 FROM positions WHERE positions.user_id = trading_accounts.user_id
+       )
+       ORDER BY (cash_balance - initial_balance) / NULLIF(initial_balance, 0) DESC NULLS LAST`,
+    );
+
+    return result.rows.map((row) => ({
+      userId: row.user_id,
+      userName: row.user_name ?? row.user_id.slice(0, 8),
+      initialBalance: Number(row.initial_balance),
+      cashBalance: Number(row.cash_balance),
+    }));
   }
 
   async resetUserSession(userId: string): Promise<TradingAccount> {

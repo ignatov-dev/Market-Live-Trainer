@@ -236,6 +236,8 @@ export interface BackendPosition {
   closePrice: number | null;
   closePnl: number | null;
   closeReason: string | null;
+  balanceBefore: number | null;
+  balanceAfter: number | null;
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;

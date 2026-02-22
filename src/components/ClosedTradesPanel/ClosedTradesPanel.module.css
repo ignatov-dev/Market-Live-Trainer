@@ -7,10 +7,38 @@
   background: #f9fbff;
 }
 
+.table {
+  table-layout: fixed;
+  min-width: unset;
+  width: 100%;
+}
+
+/* Column widths — shared cols must match OpenPositionsList */
+.colSide   { width: 60px; }
+.colQty    { width: 120px; }
+.colEntry  { width: 120px; }
+.colExit   { width: 120px; }
+.colPnl    { width: 120px; }
+.colReason    { width: 120px; }
+.colBalBefore { width: 120px; }
+.colBalAfter  { width: 120px; }
+
 .empty {
   color: #64758d;
   font-size: 13px;
   padding: 10px;
+}
+
+.long {
+  color: #1b8a63;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.short {
+  color: #bb3b51;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .pos {

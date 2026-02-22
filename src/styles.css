@@ -406,9 +406,11 @@ a {
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   grid-template-areas:
     "chart ticket"
-    "analytics coach"
-    "logs news"
-    "timeline timeline";
+    "positions positions"
+    "logs logs"
+    "analytics analytics"
+    "news timeline"
+    "coach coach";
   margin-top: -80px;
   padding: 400px 60px 0;
 }
@@ -475,6 +477,17 @@ a {
 
 .timeline-panel {
   grid-area: timeline;
+}
+
+.positions-panel {
+  grid-area: positions;
+}
+
+
+.positions-panel-empty {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .panel-head {
@@ -1697,11 +1710,12 @@ tbody tr:hover {
     grid-template-areas:
       "chart"
       "ticket"
+      "positions"
       "analytics"
-      "coach"
       "logs"
       "news"
-      "timeline";
+      "timeline"
+      "coach";
   }
 
   .market-strip {

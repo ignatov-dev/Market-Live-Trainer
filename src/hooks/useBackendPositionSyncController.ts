@@ -26,7 +26,7 @@ import {
 } from '../utils/trading';
 import type { MutableRefObject } from 'react';
 import type { Candle, LocalPosition, Session } from '../types/domain';
-import type { PositionClosedEvent } from '../integration/usePositionEvents';
+import type { PositionClosedEvent, PositionCreatedEvent } from '../integration/usePositionEvents';
 import type { PositionPnlEvent } from '../integration/usePositionPnlEvents';
 
 interface Params {
@@ -55,7 +55,7 @@ export function useBackendPositionSyncController({
   backendClosedLocalIdsRef,
 }: Params): void {
   const dispatch = useAppDispatch();
-  const { subscribeClosedEvents, subscribePnlEvents } = useWebsocket();
+  const { subscribeClosedEvents, subscribeCreatedEvents, subscribePnlEvents } = useWebsocket();
 
   const backendSyncRevision = useAppSelector((s) => s.backend.backendSyncRevision);
   const backendPnlByPositionId = useAppSelector((s) => s.backend.backendPnlByPositionId);
@@ -110,6 +110,108 @@ export function useBackendPositionSyncController({
     ],
   );
 
+  const handleBackendPositionCreated = useCallback(
+    ({ position: backendPosition }: PositionCreatedEvent) => {
+      const backendPositionId = backendPosition.id;
+      if (typeof backendPositionId !== 'string' || backendPositionId.length === 0) {
+        return;
+      }
+
+      const currentSession = sessionRef.current;
+
+      // Skip if this tab already knows about the position (the creating tab)
+      const alreadyTracked = currentSession.positions.some(
+        (p) =>
+          p.backendPositionId === backendPositionId ||
+          backendPositionIdsRef.current.get(String(p.id)) === backendPositionId,
+      );
+      if (alreadyTracked) {
+        return;
+      }
+
+      const localPositionId = `backend:${backendPositionId}`;
+      const alreadyImported = currentSession.positions.some(
+        (p) => String(p.id) === localPositionId,
+      );
+      if (alreadyImported) {
+        return;
+      }
+
+      // If this tab has an in-flight REST create that matches this WS event's
+      // attributes, the event is just the server echoing our own create back.
+      // Skip the import — the REST response will arrive shortly and set
+      // backendPositionId on the original local position via syncOpenedPositions.
+      const isEchoOfInFlightCreate = currentSession.positions.some((p) => {
+        const localId = String(p.id);
+        if (!backendOpenSyncInFlightRef.current.has(localId)) {
+          return false;
+        }
+        const symbol = PAIR_TO_PRODUCT[p.pair];
+        return (
+          symbol === backendPosition.symbol &&
+          p.side === backendPosition.side &&
+          Math.abs(p.qty - Number(backendPosition.quantity)) < 1e-8 &&
+          Math.abs(p.entryPrice - Number(backendPosition.entryPrice)) < 0.01
+        );
+      });
+      if (isEchoOfInFlightCreate) {
+        return;
+      }
+
+      const resolvedPair = resolvePairFromBackendSymbol(backendPosition.symbol);
+      const qty = Number(backendPosition.quantity);
+      const entryPrice = Number(backendPosition.entryPrice);
+
+      if (
+        !resolvedPair ||
+        !Number.isFinite(qty) ||
+        qty <= 0 ||
+        !Number.isFinite(entryPrice) ||
+        entryPrice <= 0
+      ) {
+        return;
+      }
+
+      const stopLoss =
+        backendPosition.stopLoss === null ? null : Number(backendPosition.stopLoss);
+      const takeProfit =
+        backendPosition.takeProfit === null ? null : Number(backendPosition.takeProfit);
+      const openedAtTsCandidate = new Date(backendPosition.createdAt).getTime();
+      const openedAtTs =
+        Number.isFinite(openedAtTsCandidate) && openedAtTsCandidate > 0
+          ? openedAtTsCandidate
+          : Date.now();
+      const riskAmount = stopLoss === null ? null : Math.abs(entryPrice - stopLoss) * qty;
+
+      backendPositionIdsRef.current.set(localPositionId, backendPositionId);
+
+      const importedPosition: LocalPosition = {
+        id: localPositionId as unknown as number,
+        backendPositionId,
+        pair: resolvedPair,
+        side: backendPosition.side,
+        qty,
+        entryPrice,
+        stopLoss,
+        takeProfit,
+        openedAtIndex: currentSession.replayIndex,
+        openedAtTs,
+        entryType: 'market',
+        riskAmount,
+        riskPct: null,
+        plannedR: getPlannedRMultiple(backendPosition.side, entryPrice, stopLoss, takeProfit),
+      };
+
+      dispatch(
+        setSession({
+          ...currentSession,
+          positions: [...currentSession.positions, importedPosition],
+        }),
+      );
+    },
+    [backendOpenSyncInFlightRef, backendPositionIdsRef, dispatch, getPlannedRMultiple, sessionRef],
+  );
+
   const handleBackendPositionsPnl = useCallback(
     ({ position }: PositionPnlEvent) => {
       const backendPositionId = position.positionId;
@@ -150,6 +252,10 @@ export function useBackendPositionSyncController({
     },
     [dispatch],
   );
+
+  useEffect(() => {
+    return subscribeCreatedEvents(handleBackendPositionCreated);
+  }, [handleBackendPositionCreated, subscribeCreatedEvents]);
 
   useEffect(() => {
     return subscribeClosedEvents(handleBackendPositionClosed);
@@ -512,8 +618,11 @@ export function useBackendPositionSyncController({
             stopLoss: position.stopLoss,
           });
 
+          // Always record the mapping, even when cancelled, so future effect runs
+          // skip this position instead of creating a duplicate on the backend.
+          backendPositionIdsRef.current.set(localPositionId, created.id);
+
           if (!isCancelled) {
-            backendPositionIdsRef.current.set(localPositionId, created.id);
             const prev = sessionRef.current;
             dispatch(
               setSession({

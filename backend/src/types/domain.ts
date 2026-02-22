@@ -15,6 +15,8 @@ export interface Position {
   closePrice: number | null;
   closePnl: number | null;
   closeReason: PositionCloseReason | null;
+  balanceBefore: number | null;
+  balanceAfter: number | null;
   createdAt: Date;
   updatedAt: Date;
   closedAt: Date | null;
@@ -69,4 +71,10 @@ export interface TradingAccount {
   cashBalance: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ScoreboardEntry {
+  userId: string;
+  userName: string;
+  netPnl: number;
 }

@@ -2,7 +2,6 @@ import React, { useCallback } from 'react';
 import styles from './ChartPanel.module.css';
 import CandleChart from '../CandleChart/CandleChart';
 import MarketStrip from './MarketStrip/MarketStrip';
-import OpenPositionsList from './OpenPositionsList/OpenPositionsList';
 import { PAIRS, TIMEFRAMES } from '../../constants/market';
 import { useChartCanvasController } from '../CandleChart/hooks/useChartCanvasController';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -139,7 +138,6 @@ export default function ChartPanel({
         chartMarkerTooltip={chartMarkerTooltip}
       />
 
-      <OpenPositionsList />
     </section>
   );
 }

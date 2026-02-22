@@ -32,10 +32,20 @@ export default function ClosedTradesPanel() {
         ) : positions.length === 0 ? (
           <p className={styles.empty}>No closed trades yet.</p>
         ) : (
-          <table>
+          <table className={styles.table}>
+            <colgroup>
+              <col className={styles.colSide} />
+              <col className={styles.colQty} />
+              <col className={styles.colEntry} />
+              <col className={styles.colExit} />
+              <col className={styles.colPnl} />
+              <col className={styles.colReason} />
+              <col className={styles.colBalBefore} />
+              <col className={styles.colBalAfter} />
+            </colgroup>
             <thead>
               <tr>
-                <th>Side</th><th>Qty</th><th>Entry</th><th>Exit</th><th>PnL</th><th>R</th><th>Reason</th>
+                <th>Side</th><th>Quantity</th><th>Entry</th><th>Exit</th><th>PnL</th><th>Reason</th><th>Bal. Before</th><th>Bal. After</th>
               </tr>
             </thead>
             <tbody>
@@ -49,21 +59,23 @@ export default function ClosedTradesPanel() {
                   typeof position.closePnl === 'number' && Number.isFinite(position.closePnl)
                     ? position.closePnl
                     : (localTrade?.pnl ?? null);
-                const rMultiple = localTrade?.rMultiple ?? null;
                 const reason = position.closeReason
                   ? String(position.closeReason).replace(/_/g, '-')
                   : localTrade?.reason ?? '-';
+                const balBefore = position.balanceBefore;
+                const balAfter = position.balanceAfter;
                 return (
                   <tr key={position.id}>
-                    <td>{position.side}</td>
+                    <td className={position.side === 'long' ? styles.long : styles.short}>{position.side}</td>
                     <td>{qtyLabel}</td>
                     <td>${fmtPrice(position.entryPrice)}</td>
                     <td>{position.closePrice === null ? '-' : `$${fmtPrice(position.closePrice)}`}</td>
                     <td className={pnl === null ? '' : pnl >= 0 ? styles.pos : styles.neg}>
                       {pnl === null ? '-' : fmtSigned(pnl)}
                     </td>
-                    <td>{rMultiple === null ? '-' : `${fmtNumber(rMultiple, 2)}R`}</td>
                     <td>{reason}</td>
+                    <td>{balBefore === null ? '-' : `$${fmtPrice(balBefore)}`}</td>
+                    <td>{balAfter === null ? '-' : `$${fmtPrice(balAfter)}`}</td>
                   </tr>
                 );
               })}

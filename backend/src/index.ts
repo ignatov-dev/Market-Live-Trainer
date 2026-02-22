@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   });
 
   const repository = new PositionRepository(pool);
-  const realtime = new RealtimeGateway(app.server, auth);
+  const realtime = new RealtimeGateway(app.server, auth, repository);
   const engine = new PositionEngine(repository, realtime);
 
   await engine.bootstrap();

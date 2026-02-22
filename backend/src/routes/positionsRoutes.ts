@@ -144,6 +144,9 @@ export function registerPositionRoutes(
     });
     const account = await repository.getOrCreateTradingAccount(userId);
     realtime.broadcastAccountBalance(account, 'api');
+    void realtime.broadcastScoreboard().catch((err: unknown) => {
+      app.log.error({ err }, 'Failed to broadcast scoreboard after position.created');
+    });
 
     return reply.code(201).send({ data: position });
   });
@@ -191,7 +194,11 @@ export function registerPositionRoutes(
 
     const account = await repository.resetUserSession(userId);
     engine.resetUser(userId);
+    realtime.clearUnrealizedForUser(userId);
     realtime.broadcastAccountBalance(account, 'system');
+    void realtime.broadcastScoreboard().catch((err: unknown) => {
+      app.log.error({ err }, 'Failed to broadcast scoreboard after session-reset');
+    });
     return reply.send({ data: account });
   };
 
@@ -282,6 +289,9 @@ export function registerPositionRoutes(
     });
     const account = await repository.getOrCreateTradingAccount(userId);
     realtime.broadcastAccountBalance(account, 'api');
+    void realtime.broadcastScoreboard().catch((err: unknown) => {
+      app.log.error({ err }, 'Failed to broadcast scoreboard after position.closed');
+    });
 
     return reply.send({ data: closed });
   });

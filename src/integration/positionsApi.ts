@@ -221,6 +221,29 @@ export function backendMarketWsUrl(): string {
   return url.toString();
 }
 
+export function backendScoreboardWsUrl(): string {
+  const authToken = resolveApiAuthToken();
+  if (authToken.length === 0) {
+    throw new Error('Backend auth token is missing. Sign in first.');
+  }
+
+  const url = API_BASE_URL.length > 0
+    ? new URL(API_BASE_URL)
+    : new URL(
+      `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`,
+    );
+
+  if (url.protocol === 'http:') {
+    url.protocol = 'ws:';
+  } else if (url.protocol === 'https:') {
+    url.protocol = 'wss:';
+  }
+
+  url.pathname = '/ws/scoreboard';
+  url.searchParams.set('token', authToken);
+  return url.toString();
+}
+
 export function backendAccountWsUrl(): string {
   const authToken = resolveApiAuthToken();
   if (authToken.length === 0) {

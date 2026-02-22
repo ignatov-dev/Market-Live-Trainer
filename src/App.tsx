@@ -8,6 +8,7 @@ import CoachPanel from './components/CoachPanel/CoachPanel';
 import ClosedTradesPanel from './components/ClosedTradesPanel/ClosedTradesPanel';
 import NewsPanel from './components/NewsPanel/NewsPanel';
 import TimelinePanel from './components/TimelinePanel/TimelinePanel';
+import OpenPositionsPanel from './components/OpenPositionsPanel/OpenPositionsPanel';
 import PatternNotifications from './components/PatternNotifications/PatternNotifications';
 import LayoutGrid from './components/LayoutGrid/LayoutGrid';
 import { PAIRS } from './constants/market';
@@ -283,6 +284,7 @@ export default function App() {
         pairLabel={pairMeta.label}
         authSessionEmail={authSessionEmail}
         onSignOut={handleAuthSignOut}
+        authToken={backendAuthToken}
       />
 
       <LayoutGrid>
@@ -292,6 +294,8 @@ export default function App() {
         />
 
         <TicketPanel />
+
+        <OpenPositionsPanel />
 
         <AnalyticsPanel
           metrics={metrics}
@@ -306,6 +310,7 @@ export default function App() {
         <NewsPanel />
 
         <TimelinePanel />
+
       </LayoutGrid>
 
       <PatternNotifications

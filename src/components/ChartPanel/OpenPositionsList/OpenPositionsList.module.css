@@ -2,14 +2,95 @@
   margin-top: 14px;
 }
 
-.cards {
-  display: grid;
-  grid-template-columns: repeat(3, 30%);
-  gap: 10px;
+.tableWrap {
+  border: 1px solid rgba(154, 173, 203, 0.5);
+  border-radius: 10px;
+  overflow: auto;
+  max-height: 280px;
+  background: #f9fbff;
 }
 
-@media (max-width: 760px) {
-  .cards {
-    grid-template-columns: 1fr;
-  }
+.table {
+  table-layout: fixed;
+  min-width: unset;
+  width: 100%;
+}
+
+/* Fixed column widths — sized for widest expected content */
+.colSide   { width: 60px; }
+.colQty    { width: 120px; }
+.colEntry  { width: 120px; }
+.colMark   { width: 120px; }
+.colPnl    { width: 120px; }
+.colTp     { width: 120px; }
+.colSl     { width: 120px; }
+.colAction { width: 120px; }
+
+.long {
+  color: #1b8a63;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.short {
+  color: #bb3b51;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.pos {
+  color: #1b8a63;
+  font-weight: 700;
+}
+
+.neg {
+  color: #bb3b51;
+  font-weight: 700;
+}
+
+.bracketBtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+  font-variant-numeric: tabular-nums;
+  color: #1c54ad;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bracketBtn:hover {
+  text-decoration: underline;
+}
+
+.bracketBtn:focus-visible {
+  outline: 2px solid rgba(31, 122, 255, 0.35);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.closeBtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-size: 12px;
+  color: #bb3b51;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.closeBtn:hover {
+  text-decoration: underline;
+}
+
+.closeBtn:focus-visible {
+  outline: 2px solid rgba(187, 59, 81, 0.35);
+  outline-offset: 2px;
+  border-radius: 4px;
 }

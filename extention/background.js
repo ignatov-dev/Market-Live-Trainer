@@ -1057,7 +1057,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       await refreshAuthToken();
       if (backendAuthToken) {
         startBackendSocket();
-        queueBackendRefresh();
+        // Fetch backend positions immediately (no throttle) so the popup shows
+        // up-to-date positions as soon as chrome.storage.onChanged fires.
+        void refreshBackendData();
       }
       const nextState = await refreshMarksViaRest();
       sendResponse({ ok: true, state: nextState });

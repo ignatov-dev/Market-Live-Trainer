@@ -1,0 +1,242 @@
+.scoreboard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.motivationPhrase {
+  margin: 0;
+  margin-top: auto;
+  padding-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.statusDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusDot.connected {
+  background: var(--success);
+  box-shadow: 0 0 6px rgba(27, 138, 99, 0.5);
+}
+
+.statusDot.connecting {
+  background: #f5a623;
+  box-shadow: 0 0 6px rgba(245, 166, 35, 0.5);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.statusDot.disconnected {
+  background: var(--muted);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.statusLabel {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Tier sections */
+.tier {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tierHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.tierIcon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.tierLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.tierLabel.gold {
+  color: #b8860b;
+}
+
+.tierLabel.silver {
+  color: #607090;
+}
+
+.tierLabel.bronze {
+  color: #8b5e3c;
+}
+
+/* Rows — CSS grid keeps every column aligned across all tiers */
+.row {
+  display: grid;
+  grid-template-columns: 68px 1fr 72px;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  transition: background 0.15s var(--ease-premium);
+}
+
+.row:hover {
+  background: var(--bg-accent);
+}
+
+.row.gold {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.08) 0%, transparent 100%);
+  border: 1px solid rgba(218, 165, 32, 0.2);
+}
+
+.row.gold:hover {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.14) 0%, rgba(255, 215, 0, 0.04) 100%);
+}
+
+.row.silver {
+  background: linear-gradient(90deg, rgba(176, 196, 222, 0.5) 0%, transparent 100%);
+  border: 1px solid rgba(176, 196, 222, 0.2);
+}
+
+.row.silver:hover {
+  background: linear-gradient(90deg, rgba(176, 196, 222, 0.55) 0%, rgba(176, 196, 222, 0.04) 100%);
+}
+
+.row.bronze {
+  background: linear-gradient(90deg, rgba(205, 133, 63, 0.08) 0%, transparent 100%);
+  border: 1px solid rgba(205, 133, 63, 0.18);
+}
+
+.row.bronze:hover {
+  background: linear-gradient(90deg, rgba(205, 133, 63, 0.14) 0%, rgba(205, 133, 63, 0.04) 100%);
+}
+
+.tierBadge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.tierBadge.gold      { color: #b8860b; }
+.tierBadge.silver    { color: #607090; }
+.tierBadge.bronze    { color: #8b5e3c; }
+.tierBadge.candidate { color: #64748b; }
+
+.row.candidate {
+  background: linear-gradient(90deg, rgba(100, 116, 139, 0.06) 0%, transparent 100%);
+  border: 1px solid rgba(100, 116, 139, 0.14);
+}
+
+.row.candidate:hover {
+  background: linear-gradient(90deg, rgba(100, 116, 139, 0.11) 0%, rgba(100, 116, 139, 0.03) 100%);
+}
+
+.row.currentUser {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.08) 0%, transparent 100%);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.row.currentUser:hover {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.14) 0%, rgba(99, 102, 241, 0.04) 100%);
+}
+
+.youBadge {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.currentUserDivider {
+  height: 1px;
+  background: rgba(99, 102, 241, 0.15);
+  margin: 2px 0;
+}
+
+.userName.currentUser {
+  /* color: #6366f1;
+  font-weight: 500; */
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.returnPct {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.returnPct.pos {
+  color: var(--success);
+}
+
+.returnPct.neg {
+  color: var(--danger);
+}
+
+/* Empty / loading states */
+.empty {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 12px 4px;
+  text-align: center;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeletonRow {
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    90deg,
+    var(--bg-accent) 0%,
+    rgba(220, 230, 242, 0.6) 50%,
+    var(--bg-accent) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

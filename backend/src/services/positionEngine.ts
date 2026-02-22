@@ -88,6 +88,9 @@ export class PositionEngine {
       });
       const account = await this.repository.getOrCreateTradingAccount(closed.userId);
       this.realtime.broadcastAccountBalance(account, 'engine');
+      await this.realtime.broadcastScoreboard().catch(() => {
+        // non-critical — scoreboard update failure must not interrupt engine tick
+      });
     }
 
     const remaining = this.openBySymbol.get(tick.symbol);
@@ -128,11 +131,17 @@ export class PositionEngine {
       }
     }
 
+    const unrealizedNetPnlByUser = new Map<string, number>();
     for (const [userId, userUpdates] of updatesByUser) {
       for (const update of userUpdates) {
         this.realtime.broadcastPositionPnl(userId, tick.time, update);
       }
+      unrealizedNetPnlByUser.set(
+        userId,
+        userUpdates.reduce((sum, u) => sum + u.unrealizedNetPnl, 0),
+      );
     }
+    this.realtime.broadcastScoreboardTick(tick.symbol, unrealizedNetPnlByUser);
   }
 
   private track(position: Position): void {

@@ -90,6 +90,11 @@ function signedTone(value) {
   return safe > 0 ? 'pos' : 'neg';
 }
 
+function toFiniteNumber(value, fallback = null) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function getMarkForPosition(position, marksByPair) {
   const localPair = position?.pair;
   const product = PAIR_TO_COINBASE_PRODUCT[localPair];

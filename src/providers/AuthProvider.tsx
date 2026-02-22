@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import {
   getAuthJwtToken,
@@ -25,11 +25,15 @@ import {
   setBackendHydrated,
   resetBackend,
 } from '../store/slices/backendSlice';
+import { resetSession } from '../store/slices/sessionSlice';
 
 const NEON_AUTH_URL = (import.meta.env.VITE_NEON_AUTH_URL ?? '').trim();
 
 // Cookie name the extension will read
 const AUTH_COOKIE_NAME = 'mlt_auth_token';
+
+// Cross-tab auth sync channel
+const AUTH_BROADCAST_CHANNEL = 'mlt_auth_sync';
 
 function writeAuthCookie(token: string | null) {
   if (typeof token === 'string' && token.length > 0) {
@@ -81,6 +85,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const authError = useAppSelector((s) => s.auth.authError);
   const isAuthSubmitting = useAppSelector((s) => s.auth.isAuthSubmitting);
 
+  // Prevents the restore-session effect from re-authenticating right after
+  // a cross-tab sign-out clears the local auth state.
+  const signedOutRef = useRef(false);
+
   const hasNeonAuthUrl = NEON_AUTH_URL.length > 0;
   const hasBackendAuth =
     typeof backendAuthToken === 'string' && backendAuthToken.trim().length > 0;
@@ -100,6 +108,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (hasBackendAuth || !hasNeonAuthUrl) {
+      return undefined;
+    }
+
+    // Don't try to restore a session right after a cross-tab sign-out.
+    if (signedOutRef.current) {
       return undefined;
     }
 
@@ -237,6 +250,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        signedOutRef.current = false;
+        dispatch(resetSession({ initialCandle: null }));
         applyBackendAuthToken(token);
         const sessionEmail = await getAuthSessionEmail();
         dispatch(setAuthSessionEmail(sessionEmail ?? email));
@@ -259,6 +274,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ],
   );
 
+  const performLocalSignOut = useCallback(() => {
+    writeAuthCookie(null);
+    applyBackendAuthToken(null);
+    dispatch(resetBackend());
+    dispatch(resetSession({ initialCandle: null }));
+    dispatch(setAuthSessionEmail(''));
+  }, [applyBackendAuthToken, dispatch]);
+
   const handleAuthSignOut = useCallback(async () => {
     dispatch(setAuthError(''));
 
@@ -268,11 +291,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // If session-based signout fails, still clear in-app token.
     }
 
-    writeAuthCookie(null);
-    applyBackendAuthToken(null);
-    dispatch(resetBackend());
-    dispatch(setAuthSessionEmail(''));
-  }, [applyBackendAuthToken, dispatch]);
+    performLocalSignOut();
+
+    // Notify other tabs to sign out as well
+    try {
+      const channel = new BroadcastChannel(AUTH_BROADCAST_CHANNEL);
+      channel.postMessage({ type: 'SIGN_OUT' });
+      channel.close();
+    } catch {
+      // BroadcastChannel not supported — other tabs won't be notified.
+    }
+  }, [dispatch, performLocalSignOut]);
+
+  // Listen for sign-out events from other tabs
+  useEffect(() => {
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel(AUTH_BROADCAST_CHANNEL);
+    } catch {
+      return undefined;
+    }
+
+    const localChannel = channel;
+
+    localChannel.onmessage = (event) => {
+      if (event.data?.type === 'SIGN_OUT') {
+        // Mark that we're signing out so the restore-session effect
+        // doesn't immediately re-authenticate with a cached token.
+        signedOutRef.current = true;
+
+        // Clear the local Neon auth client's cached session/token so
+        // getAuthJwtToken() won't return a stale value.
+        signOutAuth().catch(() => {});
+
+        performLocalSignOut();
+        dispatch(setAuthError(''));
+      }
+    };
+
+    return () => {
+      localChannel.close();
+    };
+  }, [dispatch, performLocalSignOut]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
