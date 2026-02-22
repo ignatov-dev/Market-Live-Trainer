@@ -4,13 +4,13 @@ Folder: `extention`
 
 ## Architecture
 
-`App page -> content.js -> background.js (source of truth) -> chrome.storage.local -> popup.js`
+`App page -> content.js -> background.js (source of truth) --port--> popup.js`
 
-- `content.js` listens for app bridge messages (`MARKET_LIVE_SESSION_SYNC`) and syncs snapshots to extension background.
-- `background.js` is the only source of truth and persists global state in `chrome.storage.local` key `market-live-state-v4`.
-- `background.js` streams live prices via Coinbase WebSocket and uses REST polling as fallback.
-- `background.js` also shares auth session with the app (via cookie) and connects to backend REST/WS for live account data.
-- `popup.js` is UI-only: reads storage on open and updates from storage change events.
+- `content.js` forwards auth token changes (`MLT_AUTH_CHANGED`) to the background service worker. No session state is synced.
+- `background.js` is the only source of truth and keeps all state **in-memory only** (no `chrome.storage` persistence).
+- `background.js` connects to backend REST endpoints and WebSocket channels (`/ws`, `/ws/positions`, `/ws/account`, `/ws/market`) as the sole data sources.
+- `background.js` streams live prices via the backend market WebSocket and falls back to Coinbase REST on the alarm interval.
+- `popup.js` is UI-only: connects to background via a long-lived port (`chrome.runtime.connect`) and renders state updates pushed by the background.
 
 ## Session model
 

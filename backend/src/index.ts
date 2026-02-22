@@ -19,6 +19,8 @@ async function main(): Promise<void> {
   await app.register(cors, {
     origin: config.corsOrigin.split(',').map((item) => item.trim()),
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Origin', 'Content-Type', 'Authorization'],
   });
 
   if (!config.authJwksUrl) {

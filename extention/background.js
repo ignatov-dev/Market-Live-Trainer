@@ -1,8 +1,6 @@
-const STORAGE_KEY = 'market-live-state-v4';
-console.log('[MLT Background] Loaded v4');
+console.log('[MLT Background] Loaded v5 (no storage)');
 const REFRESH_ALARM_NAME = 'market-live-refresh';
 const REFRESH_INTERVAL_MINUTES = 1;
-const STALE_AFTER_MS = 15 * 60 * 1000;
 const BADGE_BG_COLOR = '#d1d0f4';
 
 // Backend Market WS will be used instead of direct Coinbase feed
@@ -10,7 +8,6 @@ const WS_BASE_RECONNECT_MS = 1000;
 const WS_MAX_RECONNECT_MS = 30000;
 const WS_WRITE_THROTTLE_MS = 750;
 const BACKEND_REFRESH_THROTTLE_MS = 2000;
-const LEVERAGE = 1;
 
 const PAIR_TO_COINBASE_PRODUCT = {
   BTCUSDT: 'BTC-USD',
@@ -18,10 +15,6 @@ const PAIR_TO_COINBASE_PRODUCT = {
   SOLUSDT: 'SOL-USD',
   XRPUSDT: 'XRP-USD',
 };
-
-const PRODUCT_TO_PAIR = Object.fromEntries(
-  Object.entries(PAIR_TO_COINBASE_PRODUCT).map(([pair, product]) => [product, pair]),
-);
 
 const AUTH_COOKIE_NAME = 'mlt_auth_token';
 const AUTH_COOKIE_URL = 'https://market-live-trainer-react.onrender.com'; // adjust for production
@@ -36,7 +29,6 @@ let wsSessionId = 0;
 let streamApplyTimer = null;
 let pendingMarkUpdates = {};
 let stateCache = null;
-let stateQueue = Promise.resolve();
 
 let backendAuthToken = null;
 let backendWsStructural = null;
@@ -50,6 +42,9 @@ let latestOrigin = AUTH_COOKIE_URL;
 let backendRefreshTimer = null;
 let lastMarketWsMessageAt = 0;
 
+// Popup ports for live push updates (no storage involved)
+const popupPorts = new Set();
+
 function toFiniteNumber(value, fallback = null) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -62,119 +57,12 @@ async function applyBadgeStyle() {
   await chrome.action.setBadgeBackgroundColor({ color: BADGE_BG_COLOR });
 }
 
-function normalizeSide(value) {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const safe = value.trim().toLowerCase();
-  if (safe === 'long' || safe === 'short') {
-    return safe;
-  }
-
-  return null;
-}
-
-function getMarkForPosition(position, marksByPair) {
-  const localPair = position?.pair;
-  const product = PAIR_TO_COINBASE_PRODUCT[localPair];
-
-  const directMark = toFiniteNumber(marksByPair?.[localPair]);
-  if (Number.isFinite(directMark) && directMark > 0) return directMark;
-
-  const productMark = toFiniteNumber(marksByPair?.[product]);
-  if (Number.isFinite(productMark) && productMark > 0) return productMark;
-
-  const fallbackEntry = toFiniteNumber(position?.entryPrice);
-  if (Number.isFinite(fallbackEntry) && fallbackEntry > 0) {
-    return fallbackEntry;
-  }
-  return 0;
-}
-
-function computeUnrealizedNet(positions, marksByPair, feeRate) {
-  if (!Array.isArray(positions) || positions.length === 0) {
-    return 0;
-  }
-
-  return positions.reduce((sum, position) => {
-    const side = normalizeSide(position?.side);
-    const qty = toFiniteNumber(position?.qty);
-    const entryPrice = toFiniteNumber(position?.entryPrice);
-    const markPrice = getMarkForPosition(position, marksByPair);
-
-    if (
-      !side ||
-      !Number.isFinite(qty) ||
-      qty <= 0 ||
-      !Number.isFinite(entryPrice) ||
-      entryPrice <= 0 ||
-      !Number.isFinite(markPrice) ||
-      markPrice <= 0
-    ) {
-      return sum;
-    }
-
-    const direction = side === 'long' ? 1 : -1;
-    const gross = (markPrice - entryPrice) * qty * direction;
-    const estimatedCloseFee = markPrice * qty * feeRate;
-    return sum + gross - estimatedCloseFee;
-  }, 0);
-}
-
-function getOrderNotional(price, qty) {
-  const safePrice = Number(price);
-  const safeQty = Number(qty);
-  if (!Number.isFinite(safePrice) || safePrice <= 0 || !Number.isFinite(safeQty) || safeQty <= 0) {
-    return 0;
-  }
-  return safePrice * safeQty;
-}
-
-function getMarginRequirement(notional) {
-  const safeNotional = Number(notional);
-  if (!Number.isFinite(safeNotional) || safeNotional <= 0) {
-    return 0;
-  }
-  return safeNotional / LEVERAGE;
-}
-
-function getUsedMargin(positions, pendingOrders = []) {
-  const posMargin = positions.reduce((sum, pos) => {
-    const qty = toFiniteNumber(pos.qty || pos.quantity, 0);
-    const entry = Number(pos.entryPrice || pos.entry_price || 0);
-    return sum + getMarginRequirement(getOrderNotional(entry, qty));
-  }, 0);
-
-  const pendMargin = (Array.isArray(pendingOrders) ? pendingOrders : []).reduce((sum, order) => {
-    const qty = toFiniteNumber(order.qty, 0);
-    const limit = Number(order.limitPrice || order.limit_price || 0);
-    return sum + getMarginRequirement(getOrderNotional(limit, qty));
-  }, 0);
-
-  return posMargin + pendMargin;
-}
-
 function defaultState() {
   return {
-    version: 4,
-    initialBalance: 10000,
-    sessionBalance: 10000,
-    feeRate: 0.0004,
-    positions: [],
     marksByPair: {},
-    equity: 10000,
-    sessionReturnPct: 0,
     status: 'idle',
-    lastAppSyncAt: null,
     lastPriceSyncAt: null,
     updatedAt: Date.now(),
-    // Snapshot fields
-    availableMargin: 10000,
-    cashBalance: 10000,
-    netPnl: 0,
-    pendingOrdersCount: 0,
-    // new fields
     backendAuth: false,
     backendPositions: [],
     backendPnlByPositionId: {},
@@ -189,217 +77,119 @@ function deriveState(state, nowTs) {
     ...state,
   };
 
-  const bridgePositions = Array.isArray(safeState.positions) ? safeState.positions : [];
-  const marksByPair = safeState.marksByPair && typeof safeState.marksByPair === 'object' ? safeState.marksByPair : {};
-  const feeRate = toFiniteNumber(safeState.feeRate, 0.0004);
-  const initialBalance = toFiniteNumber(safeState.initialBalance, 10000);
-  const sessionBalance = toFiniteNumber(safeState.sessionBalance, 0);
+  const marksByPair =
+    safeState.marksByPair && typeof safeState.marksByPair === 'object'
+      ? safeState.marksByPair
+      : {};
+  const status = Object.keys(marksByPair).length > 0 ? 'active' : safeState.status;
 
-  const unrealizedNet = computeUnrealizedNet(bridgePositions, marksByPair, feeRate);
-  const equity = sessionBalance + unrealizedNet;
-  const sessionReturnPct = initialBalance > 0 ? ((equity - initialBalance) / initialBalance) * 100 : 0;
+  const backendPositions = Array.isArray(safeState.backendPositions)
+    ? safeState.backendPositions
+    : [];
 
-  const lastAppSyncAt = toFiniteNumber(safeState.lastAppSyncAt);
-  const isStale = Number.isFinite(lastAppSyncAt) && nowTs - lastAppSyncAt > STALE_AFTER_MS;
-  const status = isStale ? 'stale' : (Object.keys(marksByPair).length > 0 ? 'active' : safeState.status);
+  const backendAccount = (function () {
+    const account = safeState.backendAccount;
+    if (!account) return null;
 
-  const pendingOrders = Array.isArray(safeState.pendingOrders) ? safeState.pendingOrders : [];
-  const combinedUsedMargin = getUsedMargin(bridgePositions, pendingOrders);
+    const pnlMap = safeState.backendPnlByPositionId || {};
+    const openBackendIds = new Set(backendPositions.map((p) => String(p.id || p.positionId)));
 
-  return {
-    ...safeState,
-    initialBalance,
-    sessionBalance,
-    feeRate,
-    positions: bridgePositions,
-    pendingOrders,
-    marksByPair,
-    equity,
-    sessionReturnPct,
-    status,
-    updatedAt: nowTs,
-    availableMargin: Math.max(equity - combinedUsedMargin, 0),
-    cashBalance: sessionBalance,
-    netPnl: equity - initialBalance,
-    pendingOrdersCount: pendingOrders.length,
-    backendAuth: !!safeState.backendAuth,
-    backendPositions: Array.isArray(safeState.backendPositions) ? safeState.backendPositions : [],
-    backendPnlByPositionId: safeState.backendPnlByPositionId || {},
-    backendAccount: (function () {
-      const account = safeState.backendAccount;
-      if (!account) return null;
-
-      const pnlMap = safeState.backendPnlByPositionId || {};
-      const backendPositions = Array.isArray(safeState.backendPositions) ? safeState.backendPositions : [];
-      const openBackendIds = new Set(backendPositions.map((p) => String(p.id || p.positionId)));
-
-      const sumPnl = (field) => Object.entries(pnlMap).reduce((sum, [id, p]) => {
+    const sumPnl = (field) =>
+      Object.entries(pnlMap).reduce((sum, [id, p]) => {
         if (openBackendIds.has(String(id))) {
           return sum + (p[field] || 0);
         }
         return sum;
       }, 0);
 
-      const unrealizedNet = sumPnl('unrealizedNetPnl');
-      const unrealizedTotalNet = sumPnl('unrealizedTotalNetPnl');
+    const unrealizedNet = sumPnl('unrealizedNetPnl');
+    const unrealizedTotalNet = sumPnl('unrealizedTotalNetPnl');
 
-      const cashBalance = toFiniteNumber(account.cashBalance, 0);
-      const accInitialBalance = toFiniteNumber(account.initialBalance, 10000);
-      const accEquity = cashBalance + unrealizedNet;
-      const accNetPnl = accEquity - accInitialBalance;
-      const accReturnPct = accInitialBalance > 0 ? (accNetPnl / accInitialBalance) * 100 : 0;
+    const cashBalance = toFiniteNumber(account.cashBalance, 0);
+    const accInitialBalance = toFiniteNumber(account.initialBalance, 10000);
+    const accEquity = cashBalance + unrealizedNet;
+    const accNetPnl = accEquity - accInitialBalance;
+    const accReturnPct = accInitialBalance > 0 ? (accNetPnl / accInitialBalance) * 100 : 0;
 
-      return {
-        ...account,
-        cashBalance,
-        initialBalance: accInitialBalance,
-        equity: accEquity,
-        netPnl: accNetPnl,
-        unrealizedTotalNetPnl: unrealizedTotalNet,
-        sessionReturnPct: accReturnPct,
-        availableMargin: Math.max(accEquity - combinedUsedMargin, 0)
-      };
-    })(),
+    return {
+      ...account,
+      cashBalance,
+      initialBalance: accInitialBalance,
+      equity: accEquity,
+      netPnl: accNetPnl,
+      unrealizedTotalNetPnl: unrealizedTotalNet,
+      sessionReturnPct: accReturnPct,
+      // Use backend-provided availableMargin; fall back to equity if absent
+      availableMargin: toFiniteNumber(account.availableMargin, Math.max(accEquity, 0)),
+    };
+  })();
+
+  return {
+    ...safeState,
+    marksByPair,
+    status,
+    updatedAt: nowTs,
+    backendAuth: !!safeState.backendAuth,
+    backendPositions,
+    backendPnlByPositionId: safeState.backendPnlByPositionId || {},
+    backendAccount,
     lastBackendSyncAt: safeState.lastBackendSyncAt,
   };
 }
 
-async function loadStateFromStorage() {
-  console.log('[MLT Background] Loading state from storage...');
-  const payload = await chrome.storage.local.get(null);
-  console.log('[MLT Background] Current storage keys:', Object.keys(payload));
+// ---------------------------------------------------------------------------
+// In-memory state management (no chrome.storage involved)
+// ---------------------------------------------------------------------------
 
-  let stored = payload?.[STORAGE_KEY];
-
-  // MIGRATION: If v4 is missing but v3 exists, migrate it
-  if (!stored && payload?.['market-live-state-v3']) {
-    console.log('[MLT Background] Migrating state from v3 to v4');
-    stored = payload['market-live-state-v3'];
-    // Clean up old key explicitly
-    chrome.storage.local.remove('market-live-state-v3', () => {
-      console.log('[MLT Background] Old v3 state removed');
-    });
+function initState() {
+  if (stateCache === null) {
+    stateCache = defaultState();
   }
-
-  if (!stored || typeof stored !== 'object') {
-    return defaultState();
-  }
-
-  return deriveState(stored, Date.now());
 }
 
-async function ensureStateCache() {
-  if (stateCache !== null) {
-    return stateCache;
-  }
-
-  stateCache = await loadStateFromStorage();
-  return stateCache;
+function readState() {
+  return deriveState(stateCache || defaultState(), Date.now());
 }
 
-async function readState() {
-  await stateQueue.catch(() => undefined);
-  const state = await ensureStateCache();
-  return deriveState(state, Date.now());
+function updateState(updaterFn) {
+  const current = stateCache || defaultState();
+  const draft = typeof updaterFn === 'function' ? updaterFn(current) : updaterFn;
+  if (!draft || typeof draft !== 'object') return;
+  stateCache = deriveState(draft, Date.now());
+  notifyPopups();
 }
 
-async function writeState(nextStateOrUpdater) {
-  stateQueue = stateQueue
-    .catch(() => undefined)
-    .then(async () => {
-      const current = await ensureStateCache();
-      const draftState =
-        typeof nextStateOrUpdater === 'function' ? nextStateOrUpdater(current) : nextStateOrUpdater;
+// ---------------------------------------------------------------------------
+// Popup port communication
+// ---------------------------------------------------------------------------
 
-      if (!draftState || typeof draftState !== 'object') {
-        return current;
-      }
-
-      const nextState = deriveState(draftState, Date.now());
-      stateCache = nextState;
-      await chrome.storage.local.set({
-        [STORAGE_KEY]: nextState,
-      });
-      return nextState;
-    });
-
-  return stateQueue;
+function notifyPopups() {
+  if (popupPorts.size === 0) return;
+  const state = readState();
+  for (const port of popupPorts) {
+    try {
+      port.postMessage({ type: 'STATE_UPDATE', state });
+    } catch {
+      popupPorts.delete(port);
+    }
+  }
 }
 
-function normalizeSessionPayload(payload) {
-  if (!payload || typeof payload !== 'object') {
-    return null;
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'popup') return;
+  popupPorts.add(port);
+  // Send current state immediately on connect
+  try {
+    port.postMessage({ type: 'STATE_UPDATE', state: readState() });
+  } catch {
+    /* ignore */
   }
+  port.onDisconnect.addListener(() => popupPorts.delete(port));
+});
 
-  const sessionBalance = toFiniteNumber(payload.sessionBalance);
-  const initialBalance = toFiniteNumber(payload.initialBalance, 10000);
-  const feeRate = toFiniteNumber(payload.feeRate, 0.0004);
-  const pendingOrdersCount = toFiniteNumber(payload.pendingOrdersCount, 0);
-  const syncedAt = toFiniteNumber(payload.syncedAt, Date.now());
-  const incomingPendingOrders = Array.isArray(payload.pendingOrders) ? payload.pendingOrders : [];
-
-  if (!Number.isFinite(sessionBalance) || !Number.isFinite(initialBalance) || initialBalance <= 0) {
-    return null;
-  }
-  if (!Number.isFinite(feeRate) || feeRate < 0) {
-    return null;
-  }
-
-  const incomingPositions = Array.isArray(payload.positions) ? payload.positions : [];
-  const positions = incomingPositions
-    .map((position, index) => {
-      const pair = typeof position?.pair === 'string' ? position.pair : null;
-      const side = normalizeSide(position?.side);
-      const qty = toFiniteNumber(position?.qty);
-      const entryPrice = toFiniteNumber(position?.entryPrice);
-
-      if (!PAIR_TO_COINBASE_PRODUCT[pair] || !side || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(entryPrice) || entryPrice <= 0) {
-        return null;
-      }
-
-      return {
-        id: typeof position.id === 'string' ? position.id : String(index),
-        pair,
-        side,
-        qty,
-        entryPrice,
-        openedAtTs: toFiniteNumber(position.openedAtTs),
-      };
-    })
-    .filter(Boolean);
-
-  const pendingOrders = incomingPendingOrders
-    .map((order, index) => {
-      const pair = typeof order?.pair === 'string' ? order.pair : null;
-      const side = normalizeSide(order?.side);
-      const qty = toFiniteNumber(order?.qty);
-      const limitPrice = toFiniteNumber(order?.limitPrice);
-
-      if (!PAIR_TO_COINBASE_PRODUCT[pair] || !side || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(limitPrice) || limitPrice <= 0) {
-        return null;
-      }
-
-      return {
-        id: typeof order.id === 'string' ? order.id : String(index),
-        pair,
-        side,
-        qty,
-        limitPrice,
-        placedAtTs: toFiniteNumber(order.placedAtTs),
-      };
-    })
-    .filter(Boolean);
-
-  return {
-    sessionBalance,
-    initialBalance,
-    feeRate,
-    positions,
-    pendingOrders,
-    pendingOrdersCount,
-    syncedAt,
-  };
-}
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
 
 async function readAuthCookie() {
   try {
@@ -419,6 +209,10 @@ async function refreshAuthToken() {
   console.log('[MLT Background] Auth token refreshed:', backendAuthToken ? 'Found' : 'Not found');
   return backendAuthToken;
 }
+
+// ---------------------------------------------------------------------------
+// Backend REST
+// ---------------------------------------------------------------------------
 
 async function backendFetch(path) {
   if (!backendAuthToken) {
@@ -440,7 +234,7 @@ async function backendFetch(path) {
     if (response.status === 401) {
       // Token expired — clear it so popup shows "login required"
       backendAuthToken = null;
-      await writeState((state) => ({ ...state, backendAuth: false }));
+      updateState((state) => ({ ...state, backendAuth: false }));
       return null;
     }
 
@@ -469,15 +263,9 @@ async function refreshBackendData() {
     await refreshAuthToken();
   }
   if (!backendAuthToken) {
-    // Ensure storage state reflects being logged out
-    await writeState((state) => {
+    updateState((state) => {
       if (!state.backendAuth) return state;
-      return {
-        ...state,
-        backendAuth: false,
-        backendPositions: [],
-        backendAccount: null,
-      };
+      return { ...state, backendAuth: false, backendPositions: [], backendAccount: null };
     });
     return;
   }
@@ -488,7 +276,7 @@ async function refreshBackendData() {
   ]);
 
   if (positions !== null || account !== null) {
-    await writeState((state) => ({
+    updateState((state) => ({
       ...state,
       backendPositions: positions ?? state.backendPositions ?? [],
       backendAccount: account ?? state.backendAccount ?? null,
@@ -508,6 +296,10 @@ function queueBackendRefresh() {
     void refreshBackendData();
   }, BACKEND_REFRESH_THROTTLE_MS);
 }
+
+// ---------------------------------------------------------------------------
+// Backend WebSocket
+// ---------------------------------------------------------------------------
 
 function buildBackendWsUrl(path) {
   const base = BACKEND_BASE_URL.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');
@@ -546,8 +338,13 @@ function stopBackendSocket() {
 function startBackendSocket() {
   if (!backendAuthToken) return;
 
-  const isAnyConnecting = (s) => s && (s.readyState === WebSocket.OPEN || s.readyState === WebSocket.CONNECTING);
-  if (isAnyConnecting(backendWsStructural) && isAnyConnecting(backendWsPnl) && isAnyConnecting(backendWsAccount)) {
+  const isAnyConnecting = (s) =>
+    s && (s.readyState === WebSocket.OPEN || s.readyState === WebSocket.CONNECTING);
+  if (
+    isAnyConnecting(backendWsStructural) &&
+    isAnyConnecting(backendWsPnl) &&
+    isAnyConnecting(backendWsAccount)
+  ) {
     return;
   }
 
@@ -557,21 +354,22 @@ function startBackendSocket() {
   if (!isAnyConnecting(backendWsStructural)) {
     const s1 = new WebSocket(buildBackendWsUrl('/ws'));
     backendWsStructural = s1;
-    s1.onopen = () => { if (localSessionId === backendWsSessionId) backendWsReconnectAttempts = 0; };
+    s1.onopen = () => {
+      if (localSessionId === backendWsSessionId) backendWsReconnectAttempts = 0;
+    };
     s1.onmessage = (e) => {
       if (localSessionId !== backendWsSessionId) return;
       try {
         const msg = JSON.parse(e.data);
         if (msg.type === 'position.created' && msg.position) {
-          void writeState((state) => {
+          updateState((state) => {
             const existing = Array.isArray(state.backendPositions) ? state.backendPositions : [];
-            // Avoid duplicates in case REST already synced it
             if (existing.some((p) => p.id === msg.position.id)) return state;
             return { ...state, backendPositions: [...existing, msg.position] };
           });
           queueBackendRefresh();
         } else if (msg.type === 'position.closed' && msg.position) {
-          void writeState((state) => {
+          updateState((state) => {
             const existing = Array.isArray(state.backendPositions) ? state.backendPositions : [];
             const nextPnlMap = { ...(state.backendPnlByPositionId || {}) };
             delete nextPnlMap[msg.position.id];
@@ -600,18 +398,18 @@ function startBackendSocket() {
       try {
         const msg = JSON.parse(e.data);
         if (msg.type === 'position.pnl' && msg.position) {
-          void writeState((state) => {
+          updateState((state) => {
             const nextPnlMap = { ...(state.backendPnlByPositionId || {}) };
             const p = msg.position;
             nextPnlMap[p.positionId] = {
               unrealizedNetPnl: p.unrealizedNetPnl,
               unrealizedTotalNetPnl: p.unrealizedTotalNetPnl,
-              markPrice: p.markPrice
+              markPrice: p.markPrice,
             };
             return { ...state, backendPnlByPositionId: nextPnlMap };
           });
         }
-      } catch { }
+      } catch {}
     };
     s2.onclose = () => handleBackendWsClose(localSessionId);
   }
@@ -625,15 +423,15 @@ function startBackendSocket() {
       try {
         const msg = JSON.parse(e.data);
         if (msg.type === 'account.balance' && msg.account) {
-          void writeState((state) => ({
+          updateState((state) => ({
             ...state,
             backendAccount: {
               ...(state.backendAccount || {}),
-              ...msg.account
-            }
+              ...msg.account,
+            },
           }));
         }
-      } catch { }
+      } catch {}
     };
     s3.onclose = () => handleBackendWsClose(localSessionId);
   }
@@ -650,6 +448,10 @@ function handleBackendWsClose(localSessionId) {
     startBackendSocket();
   }, delay);
 }
+
+// ---------------------------------------------------------------------------
+// Market WebSocket
+// ---------------------------------------------------------------------------
 
 function clearReconnectTimer() {
   if (wsReconnectTimer !== null) {
@@ -705,38 +507,26 @@ function scheduleSocketReconnect() {
   }, delayMs);
 }
 
-async function applyMarkUpdates(markUpdates) {
-  await writeState((state) => {
-    const nowTs = Date.now();
-    const nextMarksByPair = {
-      ...(state.marksByPair ?? {}),
-    };
+function applyMarkUpdates(markUpdates) {
+  const current = stateCache || defaultState();
+  const nextMarksByPair = { ...(current.marksByPair ?? {}) };
+  let changed = false;
 
-    let changed = false;
-    for (const [pair, markPrice] of Object.entries(markUpdates)) {
-      const safeMark = toFiniteNumber(markPrice);
-      if (!Number.isFinite(safeMark) || safeMark <= 0) {
-        continue;
-      }
-      if (nextMarksByPair[pair] === safeMark) {
-        continue;
-      }
+  for (const [pair, markPrice] of Object.entries(markUpdates)) {
+    const safeMark = toFiniteNumber(markPrice);
+    if (!Number.isFinite(safeMark) || safeMark <= 0) continue;
+    if (nextMarksByPair[pair] === safeMark) continue;
+    nextMarksByPair[pair] = safeMark;
+    changed = true;
+  }
 
-      nextMarksByPair[pair] = safeMark;
-      changed = true;
-    }
+  if (!changed) return;
 
-    if (!changed) {
-      return state;
-    }
-
-    return {
-      ...state,
-      marksByPair: nextMarksByPair,
-      lastPriceSyncAt: nowTs,
-      updatedAt: nowTs,
-    };
-  });
+  updateState((state) => ({
+    ...state,
+    marksByPair: nextMarksByPair,
+    lastPriceSyncAt: Date.now(),
+  }));
 }
 
 function queueMarkUpdate(pair, markPrice) {
@@ -748,11 +538,9 @@ function queueMarkUpdate(pair, markPrice) {
 
   streamApplyTimer = setTimeout(() => {
     streamApplyTimer = null;
-
     const batch = pendingMarkUpdates;
     pendingMarkUpdates = {};
-
-    void applyMarkUpdates(batch);
+    applyMarkUpdates(batch);
   }, WS_WRITE_THROTTLE_MS);
 }
 
@@ -813,7 +601,7 @@ function startMarketSocket() {
 
     try {
       socket.close();
-    } catch { }
+    } catch {}
   };
 
   socket.onclose = () => {
@@ -836,11 +624,10 @@ async function refreshMarksViaRest() {
   await Promise.all(
     entries.map(async ([pair, product]) => {
       try {
-        const response = await fetch(`https://api.exchange.coinbase.com/products/${product}/ticker`, {
-          headers: {
-            Accept: 'application/json',
-          },
-        });
+        const response = await fetch(
+          `https://api.exchange.coinbase.com/products/${product}/ticker`,
+          { headers: { Accept: 'application/json' } },
+        );
 
         if (!response.ok) {
           return;
@@ -859,48 +646,18 @@ async function refreshMarksViaRest() {
     }),
   );
 
-  if (Object.keys(updates).length === 0) {
-    return readState();
+  if (Object.keys(updates).length > 0) {
+    updateState((state) => ({
+      ...state,
+      marksByPair: {
+        ...(state.marksByPair ?? {}),
+        ...updates,
+      },
+      lastPriceSyncAt: Date.now(),
+    }));
   }
 
-  await writeState((state) => ({
-    ...state,
-    marksByPair: {
-      ...(state.marksByPair ?? {}),
-      ...updates,
-    },
-    lastPriceSyncAt: Date.now(),
-  }));
-
   return readState();
-}
-
-async function ensureStateReady() {
-  await stateQueue.catch(() => undefined);
-  await ensureStateCache();
-}
-
-async function initializeStateFromStorage() {
-  stateCache = await loadStateFromStorage();
-}
-
-async function touchState() {
-  await writeState((state) => ({
-    ...state,
-  }));
-}
-
-async function updateSessionState(payload) {
-  await writeState((state) => ({
-    ...state,
-    sessionBalance: payload.sessionBalance,
-    initialBalance: payload.initialBalance,
-    feeRate: payload.feeRate,
-    positions: payload.positions,
-    pendingOrders: payload.pendingOrders,
-    lastAppSyncAt: payload.syncedAt,
-    status: 'active',
-  }));
 }
 
 async function ensureAlarm() {
@@ -913,23 +670,17 @@ async function ensureAlarm() {
 }
 
 async function bootstrap() {
-  console.log('[MLT Background] Bootstrapping...');
+  console.log('[MLT Background] Bootstrapping (v5, no storage)...');
 
-  // Extra safety check for old state
-  chrome.storage.local.get('market-live-state-v3', (res) => {
-    if (res['market-live-state-v3']) {
-      console.log('[MLT Background] Found legacy v3 state in bootstrap, removing...!');
-      chrome.storage.local.remove('market-live-state-v3');
-    }
-  });
+  // Clear any previously persisted storage from older versions
+  chrome.storage.local.clear();
 
   await applyBadgeStyle();
-  await initializeStateFromStorage();
-  await touchState();
+  initState();
   await ensureAlarm();
   startMarketSocket();
 
-  // NEW: initialize backend auth and connection
+  // Initialize backend auth and connection
   await refreshAuthToken();
   if (backendAuthToken) {
     console.log('[MLT Background] Starting backend socket and sync...');
@@ -960,19 +711,29 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     queueBackendRefresh();
 
     // Detect zombie market socket: appears OPEN but no message received in 90s
-    // (Coinbase ticks arrive every ~1s, so 90s silence = definitely dead)
-    const marketIsZombie = ws
-      && ws.readyState === WebSocket.OPEN
-      && lastMarketWsMessageAt > 0
-      && Date.now() - lastMarketWsMessageAt > 90_000;
+    const marketIsZombie =
+      ws &&
+      ws.readyState === WebSocket.OPEN &&
+      lastMarketWsMessageAt > 0 &&
+      Date.now() - lastMarketWsMessageAt > 90_000;
 
-    if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING || marketIsZombie) {
+    if (
+      !ws ||
+      ws.readyState === WebSocket.CLOSED ||
+      ws.readyState === WebSocket.CLOSING ||
+      marketIsZombie
+    ) {
       stopMarketSocket();
       startMarketSocket();
     }
 
     // Restart backend sockets if they were closed (e.g. service worker was terminated)
-    if (backendAuthToken && (!backendWsStructural || backendWsStructural.readyState === WebSocket.CLOSED || backendWsStructural.readyState === WebSocket.CLOSING)) {
+    if (
+      backendAuthToken &&
+      (!backendWsStructural ||
+        backendWsStructural.readyState === WebSocket.CLOSED ||
+        backendWsStructural.readyState === WebSocket.CLOSING)
+    ) {
       startBackendSocket();
     }
   }
@@ -985,16 +746,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     await applyBadgeStyle();
 
     if (type === 'APP_SESSION_SYNC') {
-      const payload = normalizeSessionPayload(message.payload);
-      if (!payload) {
-        sendResponse({ ok: false, error: 'Invalid payload.' });
-        return;
-      }
-
-      await ensureStateReady();
-      await updateSessionState(payload);
-
-      // Re-read token in case app just logged in or refreshed JWT
+      // Session data is no longer stored — only use this to refresh auth and ensure sockets run
       if (typeof message.token === 'string' && message.token.length > 0) {
         backendAuthToken = message.token;
       } else {
@@ -1002,13 +754,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       }
 
       if (backendAuthToken) {
+        updateState((state) => ({ ...state, backendAuth: true }));
         startBackendSocket();
         queueBackendRefresh();
       }
 
       startMarketSocket();
-      const nextState = await readState();
-      sendResponse({ ok: true, state: nextState });
+      sendResponse({ ok: true, state: readState() });
       return;
     }
 
@@ -1030,8 +782,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       } else {
         stopBackendSocket();
         stopMarketSocket();
-        // Force clear state if no token
-        void writeState((state) => ({
+        updateState((state) => ({
           ...state,
           backendAuth: false,
           backendPositions: [],
@@ -1046,7 +797,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       await ensureAlarm();
 
       // If market socket hasn't received a message in 30s it's likely a zombie (after sleep).
-      // Force-close everything so startMarketSocket / startBackendSocket create fresh connections.
       const isStale = !lastMarketWsMessageAt || Date.now() - lastMarketWsMessageAt > 30_000;
       if (isStale) {
         stopMarketSocket();
@@ -1057,8 +807,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       await refreshAuthToken();
       if (backendAuthToken) {
         startBackendSocket();
-        // Fetch backend positions immediately (no throttle) so the popup shows
-        // up-to-date positions as soon as chrome.storage.onChanged fires.
+        // Fetch backend data immediately so popup shows up-to-date info
         void refreshBackendData();
       }
       const nextState = await refreshMarksViaRest();
@@ -1073,8 +822,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         startBackendSocket();
         queueBackendRefresh();
       }
-      const nextState = await readState();
-      sendResponse({ ok: true, state: nextState });
+      sendResponse({ ok: true, state: readState() });
       return;
     }
 

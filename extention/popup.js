@@ -1,4 +1,3 @@
-const STORAGE_KEY = 'market-live-state-v4';
 const APP_BASE_URL = 'https://market-live-trainer-react.onrender.com';
 // const APP_BASE_URL = 'http://localhost:5173';
 
@@ -251,7 +250,6 @@ function renderBackendPositions(state) {
 
     // Fallback to manual calculation if mark price is available
     if (pnl === null) {
-      // Use the robust mark price lookup (supports XRPUSDT -> XRP-USD mapping)
       const markPrice = getMarkForPosition({ pair, entryPrice: Number(position.entryPrice) }, marksByPair);
       if (Number.isFinite(markPrice) && markPrice > 0 && Number.isFinite(qty) && Number.isFinite(entryPrice)) {
         const direction = sideRaw === 'long' ? 1 : -1;
@@ -321,7 +319,6 @@ function renderState(state) {
     return;
   }
 
-  const status = typeof state.status === 'string' ? state.status : 'idle';
   const updatedAt = Number(state.updatedAt);
 
   if (Number.isFinite(updatedAt)) {
@@ -332,10 +329,6 @@ function renderState(state) {
 
   hideStatus();
   setHidden(metaEl, false);
-
-  if (status === 'stale') {
-    showStatus('State is stale. Open the app to sync session.');
-  }
 
   // Render backend data
   const backendAuth = !!state.backendAuth;
@@ -349,7 +342,6 @@ function renderState(state) {
     const availableMargin = Number(backendAccount.availableMargin);
     const cashBalance = Number(backendAccount.cashBalance);
     const sessionReturnPct = Number(backendAccount.sessionReturnPct);
-    const livePositionsCount = Array.isArray(state.backendPositions) ? state.backendPositions.length : 0;
 
     setText(liveBalanceEl, fmtUsd(equity));
     setText(liveNetPnlEl, fmtSignedUsd(netPnl));
@@ -384,26 +376,6 @@ function renderState(state) {
   renderBackendPositions(state);
 }
 
-async function getInitialState() {
-  const payload = await chrome.storage.local.get(STORAGE_KEY);
-  return payload?.[STORAGE_KEY] ?? null;
-}
-
-function subscribeToStateChanges() {
-  chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== 'local') {
-      return;
-    }
-
-    const stateChange = changes?.[STORAGE_KEY];
-    if (!stateChange) {
-      return;
-    }
-
-    renderState(stateChange.newValue ?? null);
-  });
-}
-
 async function requestBackgroundRefresh() {
   try {
     await chrome.runtime.sendMessage({ type: 'POPUP_OPEN' });
@@ -412,12 +384,37 @@ async function requestBackgroundRefresh() {
   }
 }
 
+// Connect to the background service worker via a long-lived port for live updates.
+// The port delivers STATE_UPDATE messages whenever background state changes.
+function connectToBackground() {
+  let port;
+  try {
+    port = chrome.runtime.connect({ name: 'popup' });
+  } catch {
+    // Extension may be reloading; retry shortly
+    setTimeout(connectToBackground, 150);
+    return;
+  }
+
+  port.onMessage.addListener((msg) => {
+    if (msg?.type === 'STATE_UPDATE') {
+      renderState(msg.state);
+    }
+  });
+
+  port.onDisconnect.addListener(() => {
+    // Service worker may have been suspended and restarted; reconnect
+    setTimeout(connectToBackground, 150);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   showStatus('Loading...');
-  subscribeToStateChanges();
 
-  const initialState = await getInitialState();
-  renderState(initialState);
+  // Establish port connection for live state push from background
+  connectToBackground();
 
+  // Wake the service worker and trigger a fresh backend fetch.
+  // The background will push the updated state via the port once fetching completes.
   await requestBackgroundRefresh();
 });

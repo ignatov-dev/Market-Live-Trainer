@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Market Live Snapshot (Real-Time 1.0)",
   "version": "1.4.0",
-  "description": "Popup UI backed by global market state in background + chrome.storage.local.",
+  "description": "Popup UI backed by live backend data (REST + WebSocket). No local storage.",
   "permissions": ["storage", "alarms", "cookies", "tabs"],
   "host_permissions": [
     "http://localhost:*/*",

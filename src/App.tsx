@@ -14,7 +14,7 @@ import LayoutGrid from './components/LayoutGrid/LayoutGrid';
 import { PAIRS } from './constants/market';
 import { getLatestMarksByPair } from './components/CandleChart/utils/candles';
 import { getMetrics, defaultTicket } from './utils/trading';
-import { INITIAL_BALANCE, FEE_RATE } from './constants/trading';
+import { INITIAL_BALANCE } from './constants/trading';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { setSession, setTicket } from './store/slices/sessionSlice';
 import { setChartEndIndex, setChartMarkerTooltip } from './store/slices/chartSlice';
@@ -25,7 +25,6 @@ import { useSessionCandleEngine } from './hooks/useSessionCandleEngine';
 import { usePatternNotifications } from './hooks/usePatternNotifications';
 import { useBackendPositionSyncController } from './hooks/useBackendPositionSyncController';
 import { useBackendAccountController } from './hooks/useBackendAccountController';
-import { useExtensionSync } from './hooks/useExtensionSync';
 
 export default function App() {
   const dispatch = useAppDispatch();
@@ -225,7 +224,6 @@ export default function App() {
     backendAuthToken,
     hasBackendAuth,
   });
-  useExtensionSync(session, currentInitialBalance, FEE_RATE);
 
   // ---------------------------------------------------------------------------
   // Effects
