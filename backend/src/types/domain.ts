@@ -37,6 +37,8 @@ export interface ClosePositionInput {
   closeReason: PositionCloseReason;
   closedAt: Date;
   userId?: string;
+  expectedTakeProfit?: number | null;
+  expectedStopLoss?: number | null;
 }
 
 export interface PriceTick {

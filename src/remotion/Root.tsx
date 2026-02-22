@@ -5,6 +5,7 @@ import { AppShowcase } from "./AppShowcase";
 import { SessionSummaryCard } from "./SessionSummaryCard";
 import { ChartPanelDemo } from "./ChartPanelDemo";
 import { TicketPanelDemo } from "./TicketPanelDemo";
+import { ScoreboardCard } from "./ScoreboardCard";
 
 export const RemotionRoot = () => {
   return (
@@ -57,6 +58,15 @@ export const RemotionRoot = () => {
       <Composition
         id="TicketPanelDemo"
         component={TicketPanelDemo}
+        durationInFrames={300}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{}}
+      />
+      <Composition
+        id="ScoreboardCard"
+        component={ScoreboardCard}
         durationInFrames={300}
         fps={30}
         width={1920}

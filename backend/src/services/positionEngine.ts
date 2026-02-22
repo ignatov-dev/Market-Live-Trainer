@@ -74,6 +74,8 @@ export class PositionEngine {
         closePrice: decision.closePrice,
         closeReason: decision.reason,
         closedAt: tick.time,
+        expectedTakeProfit: position.takeProfit,
+        expectedStopLoss: position.stopLoss,
       });
 
       if (!closed) {

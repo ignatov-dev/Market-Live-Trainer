@@ -44,6 +44,18 @@ interface TradingAccountRow {
 const FEE_RATE = 0.0004;
 const DEFAULT_INITIAL_BALANCE = 10000;
 
+function arePricesEqual(left: number | null, right: number | null): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left === null || right === null) {
+    return false;
+  }
+
+  return Math.abs(left - right) < 1e-8;
+}
+
 function toPosition(row: PositionRow): Position {
   return {
     id: row.id,
@@ -253,6 +265,22 @@ export class PositionRepository {
       }
 
       const opened = toPosition(locked.rows[0]!);
+
+      if ('expectedTakeProfit' in input || 'expectedStopLoss' in input) {
+        const expectedTakeProfit =
+          input.expectedTakeProfit === undefined ? opened.takeProfit : input.expectedTakeProfit;
+        const expectedStopLoss =
+          input.expectedStopLoss === undefined ? opened.stopLoss : input.expectedStopLoss;
+
+        const takeProfitMatches = arePricesEqual(opened.takeProfit, expectedTakeProfit);
+        const stopLossMatches = arePricesEqual(opened.stopLoss, expectedStopLoss);
+
+        if (!takeProfitMatches || !stopLossMatches) {
+          await client.query('ROLLBACK');
+          return null;
+        }
+      }
+
       const closeParams: unknown[] = [positionId, input.closePrice, input.closeReason, input.closedAt];
       let closeQuery = `
         UPDATE positions

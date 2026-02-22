@@ -232,17 +232,57 @@ export function drawCandles(
   );
   const latestLabelWidth = ctx.measureText(latestLabel).width;
 
+  const resolveMarkerIndex = (
+    fallbackIndex: number | null | undefined,
+    markerTimestamp: number | null | undefined,
+  ): number | null => {
+    const ts = Number(markerTimestamp);
+    if (Number.isFinite(ts) && candles.length > 0) {
+      const bucketTs = getBucketStartTs(ts, timeframeId);
+      const targetTs = Number.isFinite(bucketTs) ? (bucketTs as number) : ts;
+      let left = 0;
+      let right = candles.length - 1;
+      let match = -1;
+
+      while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        if (candles[mid]!.timestamp <= targetTs) {
+          match = mid;
+          left = mid + 1;
+        } else {
+          right = mid - 1;
+        }
+      }
+
+      if (match >= 0) {
+        return match;
+      }
+
+      return null;
+    }
+
+    if (Number.isFinite(fallbackIndex)) {
+      return Math.max(0, Math.min(Number(fallbackIndex), candles.length - 1));
+    }
+
+    return null;
+  };
+
   interface ScaleEntry {
+    positionId: number;
     side: 'long' | 'short';
     price: number;
+    openedAtIndex: number | null;
     targetY: number;
     y: number;
   }
 
   const openScaleEntries: ScaleEntry[] = positions
     .map((position) => ({
+      positionId: position.id,
       side: position.side,
       price: Number(position.entryPrice),
+      openedAtIndex: resolveMarkerIndex(position.openedAtIndex, position.openedAtTs),
     }))
     .filter(
       (item) =>
@@ -285,6 +325,23 @@ export function drawCandles(
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   for (const item of openScaleEntries) {
+    const markerIndex = item.openedAtIndex;
+    if (
+      Number.isFinite(markerIndex) &&
+      (markerIndex as number) >= start &&
+      (markerIndex as number) <= replayIndex
+    ) {
+      const entryY = Math.max(plotTop, Math.min(plotBottom, yFromPrice(item.price)));
+      const markerX = padding.left + ((markerIndex as number) - start) * xStep + xStep / 2;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = item.side === 'long' ? '#15803d' : '#b91c1c';
+      ctx.beginPath();
+      ctx.moveTo(priceScaleX, entryY);
+      ctx.lineTo(markerX, entryY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
     const label = `$${fmtPriceScale(item.price)}`;
     const labelWidth = ctx.measureText(label).width;
     const chipX = priceScaleTextX - 4;
@@ -297,42 +354,6 @@ export function drawCandles(
     ctx.fillText(label, priceScaleTextX, item.y);
   }
   ctx.textBaseline = 'alphabetic';
-
-  const resolveMarkerIndex = (
-    fallbackIndex: number | null | undefined,
-    markerTimestamp: number | null | undefined,
-  ): number | null => {
-    const ts = Number(markerTimestamp);
-    if (Number.isFinite(ts) && candles.length > 0) {
-      const bucketTs = getBucketStartTs(ts, timeframeId);
-      const targetTs = Number.isFinite(bucketTs) ? (bucketTs as number) : ts;
-      let left = 0;
-      let right = candles.length - 1;
-      let match = -1;
-
-      while (left <= right) {
-        const mid = Math.floor((left + right) / 2);
-        if (candles[mid]!.timestamp <= targetTs) {
-          match = mid;
-          left = mid + 1;
-        } else {
-          right = mid - 1;
-        }
-      }
-
-      if (match >= 0) {
-        return match;
-      }
-
-      return null;
-    }
-
-    if (Number.isFinite(fallbackIndex)) {
-      return Math.max(0, Math.min(Number(fallbackIndex), candles.length - 1));
-    }
-
-    return null;
-  };
 
   interface RawMarker {
     id: string;
