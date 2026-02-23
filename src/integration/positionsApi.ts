@@ -36,6 +36,34 @@ export interface CreatePositionPayload {
   stopLoss: number | null;
 }
 
+export type LimitOrderStatus = 'pending' | 'filled' | 'canceled';
+
+export interface LimitOrder {
+  id: string;
+  userId: string;
+  symbol: string;
+  side: 'buy' | 'sell';
+  quantity: number;
+  limitPrice: number;
+  takeProfit: number | null;
+  stopLoss: number | null;
+  status: LimitOrderStatus;
+  positionId: string | null;
+  filledAt: string | null;
+  canceledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLimitOrderPayload {
+  symbol: string;
+  side: 'buy' | 'sell';
+  quantity: number;
+  limitPrice: number;
+  takeProfit: number | null;
+  stopLoss: number | null;
+}
+
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
 const INITIAL_API_AUTH_TOKEN = (import.meta.env.VITE_BACKEND_AUTH_TOKEN ?? '').trim();
 let runtimeApiAuthToken = INITIAL_API_AUTH_TOKEN;
@@ -98,6 +126,15 @@ export async function createPosition(body: CreatePositionPayload): Promise<Posit
   return data.data;
 }
 
+export async function createLimitOrder(body: CreateLimitOrderPayload): Promise<LimitOrder> {
+  const data = await request<{ data: LimitOrder }>('/api/limit-orders', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+
+  return data.data;
+}
+
 export async function listPositions(status?: PositionStatus): Promise<Position[]> {
   const params = new URLSearchParams();
   if (status) {
@@ -106,6 +143,27 @@ export async function listPositions(status?: PositionStatus): Promise<Position[]
 
   const queryString = params.toString();
   const data = await request<{ data: Position[] }>(queryString ? `/api/positions?${queryString}` : '/api/positions');
+  return data.data;
+}
+
+export async function listLimitOrders(status?: LimitOrderStatus): Promise<LimitOrder[]> {
+  const params = new URLSearchParams();
+  if (status) {
+    params.set('status', status);
+  }
+
+  const queryString = params.toString();
+  const data = await request<{ data: LimitOrder[] }>(
+    queryString ? `/api/limit-orders?${queryString}` : '/api/limit-orders',
+  );
+  return data.data;
+}
+
+export async function cancelLimitOrder(orderId: string): Promise<LimitOrder> {
+  const data = await request<{ data: LimitOrder }>(`/api/limit-orders/${orderId}/cancel`, {
+    method: 'POST',
+  });
+
   return data.data;
 }
 

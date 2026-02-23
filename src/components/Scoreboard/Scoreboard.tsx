@@ -3,6 +3,7 @@ import { motion, LayoutGroup } from 'framer-motion';
 import styles from './Scoreboard.module.css';
 import { useScoreboardSocket } from './useScoreboardSocket';
 import { groupUsersByRank, formatNetPnl, decodeJwtUserId, ordinalRank, getScoreboardPhrase } from './utils';
+import { TrophyIcon } from './TrophyIcon';
 import type { ScoreboardEntry } from './types';
 
 const ROW_TRANSITION = { type: 'spring', stiffness: 380, damping: 32 } as const;
@@ -18,9 +19,9 @@ interface TierSectionProps {
 }
 
 const TIER_META = {
-  gold:   { icon: '🥇', label: 'Gold' },
-  silver: { icon: '🥈', label: 'Silver' },
-  bronze: { icon: '🥉', label: 'Bronze' },
+  gold:   { label: 'Gold' },
+  silver: { label: 'Silver' },
+  bronze: { label: 'Bronze' },
 } as const;
 
 function TierSection({ tier, entries, currentUserId }: TierSectionProps) {
@@ -43,7 +44,9 @@ function TierSection({ tier, entries, currentUserId }: TierSectionProps) {
             animate={{ opacity: 1 }}
             className={`${styles.row} ${styles[tier]}`}
           >
-            <span className={`${styles.tierBadge} ${styles[tier]}`}>{label}</span>
+            <span className={`${styles.tierBadge} ${styles[tier]}`} aria-label={label}>
+              <TrophyIcon className={styles.trophyIcon} title={label} />
+            </span>
             <span className={`${styles.userName}${isCurrentUser ? ` ${styles.currentUser}` : ''}`}>
               {entry.userName}{isCurrentUser && <span className={styles.youBadge}> (you)</span>}
             </span>

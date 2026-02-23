@@ -94,7 +94,7 @@ export interface ClosedTrade {
 }
 
 export interface PendingOrder {
-  id: number;
+  id: number | string;
   pair: string;
   side: TicketSide;
   qty: number;

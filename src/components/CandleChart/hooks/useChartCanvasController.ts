@@ -22,6 +22,7 @@ interface Params {
   chartEndIndex: number | null;
   chartMarkerTooltip: ChartMarkerTooltip | null;
   resizeToken: number;
+  pricePrecision: number;
   onChartViewSizeChange: (next: number) => void;
   onChartEndIndexChange: (next: number | null) => void;
   onChartMarkerTooltipChange: (next: ChartMarkerTooltip | null) => void;
@@ -53,6 +54,7 @@ export function useChartCanvasController({
   chartEndIndex,
   chartMarkerTooltip,
   resizeToken,
+  pricePrecision,
   onChartViewSizeChange,
   onChartEndIndexChange,
   onChartMarkerTooltipChange,
@@ -65,6 +67,7 @@ export function useChartCanvasController({
   const chartMarkerHotspotsRef = useRef<MarkerHotspot[]>([]);
   const chartHoveredMarkerIdRef = useRef<string | null>(null);
   const chartHoverRedrawRafRef = useRef<number | null>(null);
+  const chartPanAccumulatorRef = useRef(0);
   const chartEndIndexRef = useRef<number | null>(chartEndIndex);
   const chartViewSizeRef = useRef(chartViewSize);
   const chartDrawStateRef = useRef({
@@ -74,6 +77,7 @@ export function useChartCanvasController({
     closedTrades: [] as ClosedTrade[],
     viewSize: DEFAULT_CHART_VIEW_SIZE,
     timeframeId,
+    pricePrecision,
   });
 
   chartEndIndexRef.current = chartEndIndex;
@@ -94,6 +98,7 @@ export function useChartCanvasController({
     closedTrades: currentPairClosedTrades,
     viewSize: chartViewSize,
     timeframeId,
+    pricePrecision,
   };
 
   const hasCustomChartScale = useMemo(
@@ -124,6 +129,7 @@ export function useChartCanvasController({
       state.closedTrades,
       state.viewSize,
       state.timeframeId,
+      state.pricePrecision,
       chartCrosshairRef.current,
       chartMarkerHotspotsRef,
     );
@@ -279,6 +285,7 @@ export function useChartCanvasController({
     currentPairClosedTrades,
     chartViewSize,
     timeframeId,
+    pricePrecision,
     resizeToken,
     redrawChartWithCurrentState,
   ]);
@@ -308,8 +315,18 @@ export function useChartCanvasController({
 
       if (hasHorizontalIntent) {
         stopPanAnimation();
-        const panStepRaw = Math.round(event.deltaX * CHART_PAN_SENSITIVITY);
-        const panStep = panStepRaw === 0 ? (event.deltaX > 0 ? 1 : -1) : panStepRaw;
+        const nextAccumulator =
+          chartPanAccumulatorRef.current + event.deltaX * CHART_PAN_SENSITIVITY;
+        const panStepRaw = Math.trunc(nextAccumulator);
+        chartPanAccumulatorRef.current = nextAccumulator - panStepRaw;
+        if (panStepRaw === 0) {
+          return;
+        }
+        const maxStep = 4;
+        const panStep = Math.max(-maxStep, Math.min(maxStep, panStepRaw));
+        if (panStep !== panStepRaw) {
+          chartPanAccumulatorRef.current += panStepRaw - panStep;
+        }
         const maxIndex = Math.max(0, candles.length - 1);
         const baseIndex = chartEndIndexRef.current === null ? maxIndex : chartEndIndexRef.current;
         const nextIndex = Math.max(0, Math.min(baseIndex + panStep, maxIndex));

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { Position } from './positionsApi';
+import type { LimitOrder, Position } from './positionsApi';
 import { backendWsUrl } from './positionsApi';
 
 export interface PositionClosedEvent {
@@ -14,13 +14,41 @@ export interface PositionCreatedEvent {
   source: 'engine' | 'api';
 }
 
+export interface LimitOrderCreatedEvent {
+  type: 'limit_order.created';
+  order: LimitOrder;
+  source: 'engine' | 'api';
+}
+
+export interface LimitOrderCanceledEvent {
+  type: 'limit_order.canceled';
+  order: LimitOrder;
+  source: 'engine' | 'api';
+}
+
+export interface LimitOrderFilledEvent {
+  type: 'limit_order.filled';
+  order: LimitOrder;
+  source: 'engine' | 'api';
+}
+
 interface UsePositionEventsArgs {
   authToken: string | null;
   onClosed: (event: PositionClosedEvent) => void;
   onCreated?: (event: PositionCreatedEvent) => void;
+  onLimitOrderCreated?: (event: LimitOrderCreatedEvent) => void;
+  onLimitOrderCanceled?: (event: LimitOrderCanceledEvent) => void;
+  onLimitOrderFilled?: (event: LimitOrderFilledEvent) => void;
 }
 
-export function usePositionEvents({ authToken, onClosed, onCreated }: UsePositionEventsArgs): void {
+export function usePositionEvents({
+  authToken,
+  onClosed,
+  onCreated,
+  onLimitOrderCreated,
+  onLimitOrderCanceled,
+  onLimitOrderFilled,
+}: UsePositionEventsArgs): void {
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptsRef = useRef(0);
 
@@ -56,13 +84,18 @@ export function usePositionEvents({ authToken, onClosed, onCreated }: UsePositio
       socket.onmessage = (message) => {
         if (ws !== socket) return;
         try {
-          const payload = JSON.parse(message.data as string) as { type?: string; position?: Position; source?: 'engine' | 'api' };
+          const payload = JSON.parse(message.data as string) as {
+            type?: string;
+            position?: Position;
+            order?: LimitOrder;
+            source?: 'engine' | 'api';
+          };
 
-          if (!payload.position || !payload.source) {
+          if (!payload.source) {
             return;
           }
 
-          if (payload.type === 'position.closed') {
+          if (payload.type === 'position.closed' && payload.position) {
             onClosed({
               type: 'position.closed',
               position: payload.position,
@@ -71,10 +104,37 @@ export function usePositionEvents({ authToken, onClosed, onCreated }: UsePositio
             return;
           }
 
-          if (payload.type === 'position.created') {
+          if (payload.type === 'position.created' && payload.position) {
             onCreated?.({
               type: 'position.created',
               position: payload.position,
+              source: payload.source,
+            });
+            return;
+          }
+
+          if (payload.type === 'limit_order.created' && payload.order) {
+            onLimitOrderCreated?.({
+              type: 'limit_order.created',
+              order: payload.order,
+              source: payload.source,
+            });
+            return;
+          }
+
+          if (payload.type === 'limit_order.canceled' && payload.order) {
+            onLimitOrderCanceled?.({
+              type: 'limit_order.canceled',
+              order: payload.order,
+              source: payload.source,
+            });
+            return;
+          }
+
+          if (payload.type === 'limit_order.filled' && payload.order) {
+            onLimitOrderFilled?.({
+              type: 'limit_order.filled',
+              order: payload.order,
               source: payload.source,
             });
           }

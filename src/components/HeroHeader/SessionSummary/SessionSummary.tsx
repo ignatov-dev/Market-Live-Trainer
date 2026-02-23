@@ -33,7 +33,11 @@ export default function SessionSummary({
   );
   const balanceValue = Number.isFinite(metrics.equity) ? metrics.equity : cashBalance;
   const availableMargin = useMemo(
-    () => Math.max(balanceValue - getUsedMargin(session), 0),
+    () =>
+      Math.max(
+        balanceValue - getUsedMargin(session, { includePendingOrders: true }),
+        0,
+      ),
     [balanceValue, session],
   );
   const initialBalance = useMemo(() => {

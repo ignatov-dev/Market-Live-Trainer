@@ -4,11 +4,14 @@ import { config } from './config.js';
 import { pool, closeDb } from './db.js';
 import { runMigrations } from './migrate.js';
 import { PositionRepository } from './repositories/positionRepository.js';
+import { LimitOrderRepository } from './repositories/limitOrderRepository.js';
 import { CoinbaseTickerService } from './services/coinbaseTickerService.js';
 import { PositionEngine } from './services/positionEngine.js';
+import { LimitOrderEngine } from './services/limitOrderEngine.js';
 import { RealtimeGateway } from './services/realtimeGateway.js';
 import { AuthService } from './services/authService.js';
 import { registerPositionRoutes } from './routes/positionsRoutes.js';
+import { registerLimitOrderRoutes } from './routes/limitOrdersRoutes.js';
 import { registerMarketRoutes } from './routes/marketRoutes.js';
 
 async function main(): Promise<void> {
@@ -43,10 +46,13 @@ async function main(): Promise<void> {
   });
 
   const repository = new PositionRepository(pool);
+  const limitOrderRepository = new LimitOrderRepository(pool);
   const realtime = new RealtimeGateway(app.server, auth, repository);
   const engine = new PositionEngine(repository, realtime);
+  const limitOrderEngine = new LimitOrderEngine(limitOrderRepository, repository, engine, realtime);
 
   await engine.bootstrap();
+  await limitOrderEngine.bootstrap();
 
   const ticker = new CoinbaseTickerService({
     url: config.coinbaseWsUrl,
@@ -59,6 +65,11 @@ async function main(): Promise<void> {
   const openPositions = await repository.listOpenPositions();
   for (const position of openPositions) {
     ticker.addProduct(position.symbol);
+  }
+
+  const pendingOrders = await limitOrderRepository.listPendingOrders();
+  for (const order of pendingOrders) {
+    ticker.addProduct(order.symbol);
   }
 
   ticker.on('connected', () => {
@@ -79,11 +90,23 @@ async function main(): Promise<void> {
     void engine.onTick(tick).catch((error) => {
       app.log.error({ err: error, tick }, 'Failed to process tick');
     });
+
+    void limitOrderEngine.onTick(tick).catch((error) => {
+      app.log.error({ err: error, tick }, 'Failed to process limit order tick');
+    });
   });
 
   registerPositionRoutes(app, {
     repository,
     engine,
+    realtime,
+    auth,
+    subscribeToSymbol: (symbol) => ticker.addProduct(symbol),
+    resetLimitOrders: (userId) => limitOrderEngine.resetUser(userId),
+  });
+  registerLimitOrderRoutes(app, {
+    repository: limitOrderRepository,
+    engine: limitOrderEngine,
     realtime,
     auth,
     subscribeToSymbol: (symbol) => ticker.addProduct(symbol),

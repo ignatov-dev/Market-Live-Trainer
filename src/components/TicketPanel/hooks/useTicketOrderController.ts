@@ -12,6 +12,8 @@ import {
   validateTicketOrder,
   type TicketValidation,
 } from '../../../utils/trading';
+import { PAIR_TO_PRODUCT } from '../../../constants/market';
+import { cancelLimitOrder, createLimitOrder } from '../../../integration/positionsApi';
 import type { Candle, PendingOrder, Session, Ticket, TicketSide } from '../../../types/domain';
 
 interface BracketPnlPreview {
@@ -30,7 +32,7 @@ interface TicketOrderController {
   onTicketChange: (partial: Partial<Ticket>) => void;
   onTicketPreviewSide: (side: TicketSide) => void;
   onSubmitOrder: (side: TicketSide) => void;
-  onCancelOrder: (orderId: number) => void;
+  onCancelOrder: (orderId: string | number) => void;
 }
 
 const FALLBACK_SESSION: Session = {
@@ -199,7 +201,7 @@ export function useTicketOrderController(): TicketOrderController {
   );
 
   const onSubmitOrder = useCallback(
-    (side: TicketSide) => {
+    async (side: TicketSide) => {
       if (side !== 'buy' && side !== 'sell') {
         return;
       }
@@ -258,6 +260,62 @@ export function useTicketOrderController(): TicketOrderController {
         return;
       }
 
+      if (hasBackendAuth) {
+        const symbol = PAIR_TO_PRODUCT[pair];
+        if (!symbol) {
+          return;
+        }
+
+        try {
+          const created = await createLimitOrder({
+            symbol,
+            side,
+            quantity: qty,
+            limitPrice,
+            takeProfit,
+            stopLoss,
+          });
+
+          const pending: PendingOrder = {
+            id: created.id,
+            pair,
+            side,
+            qty,
+            limitPrice: Number(created.limitPrice),
+            stopLoss,
+            takeProfit,
+          };
+
+          const exists = sessionForTrading.pendingOrders.some(
+            (item) => String(item.id) === created.id,
+          );
+
+          let next = exists
+            ? sessionForTrading
+            : {
+                ...sessionForTrading,
+                pendingOrders: [...sessionForTrading.pendingOrders, pending],
+              };
+
+          if (!exists) {
+            next = appendTimeline(
+              next,
+              buildTimelineEvent(
+                currentCandle.index,
+                currentCandle.timestamp,
+                `${pending.pair} limit ${pending.side === 'buy' ? 'buy' : 'sell'} order queued at $${fmtPrice(limitPrice)}.`,
+              ),
+            );
+          }
+
+          dispatch(setSession(next));
+          dispatch(setTicket({ ...defaultTicket(currentPrice), type: ticket.type }));
+        } catch (error) {
+          console.error('Failed to create limit order', error);
+        }
+        return;
+      }
+
       const pending = {
         id: sessionForTrading.sequence,
         pair,
@@ -290,6 +348,7 @@ export function useTicketOrderController(): TicketOrderController {
     },
     [
       dispatch,
+      hasBackendAuth,
       pair,
       sessionForTrading,
       ticketValidation,
@@ -303,10 +362,23 @@ export function useTicketOrderController(): TicketOrderController {
   );
 
   const onCancelOrder = useCallback(
-    (orderId: number) => {
-      const order = session.pendingOrders.find((item) => item.id === orderId);
+    async (orderId: string | number) => {
+      const order = session.pendingOrders.find((item) => String(item.id) === String(orderId));
       if (!order) {
         return;
+      }
+
+      if (hasBackendAuth) {
+        if (typeof order.id !== 'string' || order.id.length === 0) {
+          return;
+        }
+
+        try {
+          await cancelLimitOrder(order.id);
+        } catch (error) {
+          console.error('Failed to cancel limit order', error);
+          return;
+        }
       }
 
       const orderPairSeries = datasets[order.pair] ?? [];
@@ -317,7 +389,7 @@ export function useTicketOrderController(): TicketOrderController {
 
       let next = {
         ...session,
-        pendingOrders: session.pendingOrders.filter((item) => item.id !== orderId),
+        pendingOrders: session.pendingOrders.filter((item) => String(item.id) !== String(orderId)),
       };
 
       next = appendTimeline(
@@ -331,7 +403,7 @@ export function useTicketOrderController(): TicketOrderController {
 
       dispatch(setSession(next));
     },
-    [dispatch, session, datasets, currentCandle],
+    [dispatch, hasBackendAuth, session, datasets, currentCandle],
   );
 
   return {

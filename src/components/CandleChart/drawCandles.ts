@@ -15,6 +15,7 @@ import {
   candleAxisLabel,
   candleTooltipLabel,
   fmtNumber,
+  fmtFixedPrice,
   fmtPrice,
   fmtSigned,
 } from '../../utils/formatters';
@@ -53,6 +54,7 @@ export function drawCandles(
   closedTrades: ClosedTrade[],
   viewSize: number,
   timeframeId: string,
+  pricePrecision = 2,
   crosshair: ChartCrosshair | null = null,
   markerHotspotsRef: MarkerHotspotsRef | null = null,
 ): void {
@@ -80,7 +82,10 @@ export function drawCandles(
   ctx.fillStyle = '#f9fbff';
   ctx.fillRect(0, 0, width, height);
 
-  const padding = { top: 20, right: 58, bottom: 52, left: 16 };
+  // Keep all price labels consistent with the live price label.
+  const PRICE_FONT = '10px Avenir Next';
+
+  let padding = { top: 20, right: 58, bottom: 52, left: 16 };
   const safeViewSize = Math.max(2, Math.floor(viewSize));
   const start = Math.max(0, replayIndex - safeViewSize + 1);
   const visible = candles.slice(start, replayIndex + 1);
@@ -95,6 +100,33 @@ export function drawCandles(
   const yMin = min - range * 0.08;
   const yMax = max + range * 0.08;
 
+  // Ensure the right price scale has enough room for the widest label.
+  // Otherwise the text can be cut off on the canvas edge for larger prices.
+  const yTickCount = 5;
+  const lastCandle = candles[candles.length - 1];
+  const lastPrice = Number(lastCandle?.close);
+  const scaleLabels: string[] = [];
+  for (let i = 0; i < yTickCount; i += 1) {
+    const ratio = i / (yTickCount - 1);
+    const price = yMax - ratio * (yMax - yMin);
+    scaleLabels.push(`$${fmtPriceScale(price)}`);
+  }
+  if (Number.isFinite(lastPrice) && lastPrice > 0) {
+    scaleLabels.push(`$${fmtPriceScale(lastPrice)}`);
+  }
+  ctx.font = PRICE_FONT;
+  const maxScaleLabelWidth = scaleLabels.reduce((maxWidth, label) => {
+    const width = ctx.measureText(label).width;
+    return width > maxWidth ? width : maxWidth;
+  }, 0);
+  const requiredRightPadding = Math.ceil(
+    CHART_PRICE_SCALE_TEXT_RIGHT_INSET + maxScaleLabelWidth + 12,
+  );
+  padding = {
+    ...padding,
+    right: Math.max(padding.right, requiredRightPadding),
+  };
+
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
@@ -103,13 +135,14 @@ export function drawCandles(
     return padding.top + chartHeight - ratio * chartHeight;
   };
 
-  const xStep = chartWidth / (visible.length + CHART_RIGHT_GAP_SLOTS);
+  const isLiveView = replayIndex >= candles.length - 1;
+  const rightGapSlots = isLiveView ? CHART_RIGHT_GAP_SLOTS : 0;
+  const xStep = chartWidth / (visible.length + rightGapSlots);
   const bodyWidth = Math.max(2, xStep * 0.62);
 
   ctx.strokeStyle = '#e3e8f2';
   ctx.lineWidth = 1;
 
-  const yTickCount = 5;
   for (let i = 0; i < yTickCount; i += 1) {
     const y = padding.top + (i / (yTickCount - 1)) * chartHeight;
     ctx.beginPath();
@@ -127,7 +160,7 @@ export function drawCandles(
   ctx.lineTo(priceScaleX, padding.top + chartHeight);
   ctx.stroke();
 
-  ctx.font = '10px Avenir Next';
+  ctx.font = PRICE_FONT;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   for (let i = 0; i < yTickCount; i += 1) {
@@ -321,7 +354,7 @@ export function drawCandles(
     }
   }
 
-  ctx.font = '11px Avenir Next';
+  ctx.font = PRICE_FONT;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   for (const item of openScaleEntries) {
@@ -346,12 +379,16 @@ export function drawCandles(
     const labelWidth = ctx.measureText(label).width;
     const chipX = priceScaleTextX - 4;
     const chipY = item.y - labelHalfHeight;
+    const chipW = labelWidth + 8;
 
-    ctx.fillStyle =
-      item.side === 'long' ? 'rgba(16, 129, 81, 0.3)' : 'rgba(191, 35, 61, 0.3)';
-    ctx.fillRect(chipX, chipY, labelWidth + 8, CHART_SCALE_TAG_HEIGHT);
+    // Solid (no opacity) side-tinted chip background.
+    ctx.fillStyle = item.side === 'long' ? '#c8e6c9' : '#fee2e2';
+    ctx.fillRect(chipX, chipY, chipW, CHART_SCALE_TAG_HEIGHT);
     ctx.fillStyle = item.side === 'long' ? '#0f5132' : '#7f1d2d';
-    ctx.fillText(label, priceScaleTextX, item.y);
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.fillText(label, chipX + chipW / 2, item.y);
+    ctx.restore();
   }
   ctx.textBaseline = 'alphabetic';
 
@@ -497,8 +534,23 @@ export function drawCandles(
   }
 
   if (crosshair && Number.isFinite(crosshair.x) && Number.isFinite(crosshair.y)) {
-    const crosshairX = Math.max(padding.left, Math.min(crosshair.x, width - padding.right));
+    const crosshairXRaw = Math.max(
+      padding.left,
+      Math.min(crosshair.x, width - padding.right),
+    );
     const crosshairY = Math.max(plotTop, Math.min(crosshair.y, plotBottom));
+    const crosshairRelativeIndex = Math.round(
+      (crosshairXRaw - padding.left - xStep / 2) / xStep,
+    );
+    const safeCrosshairIndex = Math.max(
+      0,
+      Math.min(visible.length - 1, crosshairRelativeIndex),
+    );
+    const nearestCandleX = padding.left + safeCrosshairIndex * xStep + xStep / 2;
+    const snapThreshold = Math.min(8, xStep * 0.49);
+    const shouldSnap = Math.abs(crosshairXRaw - nearestCandleX) <= snapThreshold;
+    const crosshairCandle = shouldSnap ? visible[safeCrosshairIndex] : null;
+    const crosshairX = shouldSnap ? nearestCandleX : crosshairXRaw;
     const crosshairPrice = yMax - ((crosshairY - plotTop) / chartHeight) * (yMax - yMin);
 
     ctx.save();
@@ -518,7 +570,7 @@ export function drawCandles(
     ctx.restore();
 
     const crosshairLabel = `$${fmtPriceScale(crosshairPrice)}`;
-    ctx.font = '10px Avenir Next';
+    ctx.font = PRICE_FONT;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     const crosshairLabelWidth = ctx.measureText(crosshairLabel).width;
@@ -532,17 +584,118 @@ export function drawCandles(
     ctx.fillStyle = '#334155';
     ctx.fillText(crosshairLabel, priceScaleTextX, crosshairLabelY);
 
-    const crosshairRelativeIndex = Math.round(
-      (crosshairX - padding.left - xStep / 2) / xStep,
-    );
-    const safeCrosshairIndex = Math.max(
-      0,
-      Math.min(visible.length - 1, crosshairRelativeIndex),
-    );
-    const crosshairCandle = visible[safeCrosshairIndex];
     if (crosshairCandle) {
+      ctx.font = '11px Avenir Next';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const openValue = Number(crosshairCandle.open);
+      const closeValue = Number(crosshairCandle.close);
+      const moveRaw =
+        Number.isFinite(openValue) && Number.isFinite(closeValue)
+          ? closeValue - openValue
+          : null;
+      const moveValue =
+        moveRaw === null || !Number.isFinite(moveRaw)
+          ? '-'
+          : `${moveRaw >= 0 ? '+' : '-'}${fmtFixedPrice(Math.abs(moveRaw), pricePrecision)}`;
+      const pctChangeRaw =
+        moveRaw !== null && Number.isFinite(moveRaw) && Number.isFinite(openValue) && openValue !== 0
+          ? (moveRaw / openValue) * 100
+          : null;
+      const pctDigits = 2;
+      const pctValue =
+        pctChangeRaw === null || !Number.isFinite(pctChangeRaw)
+          ? '-'
+          : `${pctChangeRaw >= 0 ? '+' : '-'}${Math.abs(pctChangeRaw).toLocaleString(
+              undefined,
+              {
+                minimumFractionDigits: pctDigits,
+                maximumFractionDigits: pctDigits,
+              },
+            )}%`;
+      const moveColor =
+        moveRaw === null || !Number.isFinite(moveRaw)
+          ? '#2a3446'
+          : moveRaw > 0
+            ? '#15803d'
+            : moveRaw < 0
+              ? '#b91c1c'
+              : '#2a3446';
+      const ohlcEntries = [
+        { label: 'O', value: fmtFixedPrice(crosshairCandle.open, pricePrecision) },
+        { label: 'H', value: fmtFixedPrice(crosshairCandle.high, pricePrecision) },
+        { label: 'L', value: fmtFixedPrice(crosshairCandle.low, pricePrecision) },
+        { label: 'C', value: fmtFixedPrice(crosshairCandle.close, pricePrecision) },
+        {
+          label: 'M',
+          value: `${moveValue} (${pctValue === '-' ? '-' : pctValue})`,
+          color: moveColor,
+        },
+      ];
+      const ohlcX = padding.left + 0;
+      const ohlcY = padding.top + 4;
+      const chipPaddingX = 8;
+      const chipHeight = 18;
+      const chipGap = 6;
+      const dividerWidth = 1;
+      const minChipWidth = 70;
+      const chipWidths = ohlcEntries.map((entry) => {
+        const label = `${entry.label}: ${entry.value}`;
+        const labelWidth = ctx.measureText(label).width;
+        return Math.max(minChipWidth, Math.ceil(labelWidth + chipPaddingX * 2));
+      });
+      const totalWidth =
+        chipWidths.reduce((sum, width) => sum + width, 0) +
+        dividerWidth * (chipWidths.length - 1);
+      const chipY = ohlcY - 2;
+      const chipCenterY = chipY + chipHeight / 2;
+
+      const drawRoundedRect = (
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        r: number,
+      ) => {
+        const radius = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+      };
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+      drawRoundedRect(ohlcX, chipY, totalWidth, chipHeight, 4);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(72, 91, 121, 0.18)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      let chipX = ohlcX;
+
+      for (let i = 0; i < ohlcEntries.length; i += 1) {
+        const entry = ohlcEntries[i]!;
+        const label = `${entry.label}: ${entry.value}`;
+        const chipWidth = chipWidths[i] ?? minChipWidth;
+        ctx.fillStyle = entry.color ?? '#2a3446';
+        ctx.fillText(label, chipX + chipPaddingX, chipCenterY);
+        chipX += chipWidth;
+        if (i < ohlcEntries.length - 1) {
+          ctx.strokeStyle = 'rgba(72, 91, 121, 0.18)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(chipX + dividerWidth / 2, chipY + 3);
+          ctx.lineTo(chipX + dividerWidth / 2, chipY + chipHeight - 3);
+          ctx.stroke();
+          chipX += dividerWidth;
+        }
+      }
+
       const crosshairTimeLabel = candleAxisLabel(crosshairCandle.timestamp);
-      ctx.font = '10px Avenir Next';
+      ctx.font = PRICE_FONT;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const timeLabelWidth = ctx.measureText(crosshairTimeLabel).width;
@@ -575,15 +728,17 @@ export function drawCandles(
     ctx.textBaseline = 'alphabetic';
   }
 
-  ctx.font = '10px Avenir Next';
-  ctx.textAlign = 'left';
+  ctx.font = PRICE_FONT;
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = 'rgba(223, 235, 255, 0.98)';
-  ctx.fillRect(priceScaleTextX - 3, latestLabelY - 8, latestLabelWidth + 6, 16);
+  const latestChipX = priceScaleTextX - 4;
+  const latestChipW = latestLabelWidth + 8;
+  ctx.fillRect(latestChipX, latestLabelY - labelHalfHeight, latestChipW, CHART_SCALE_TAG_HEIGHT);
   ctx.strokeStyle = 'rgba(29, 78, 216, 0.38)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(priceScaleTextX - 3, latestLabelY - 8, latestLabelWidth + 6, 16);
+  ctx.strokeRect(latestChipX, latestLabelY - labelHalfHeight, latestChipW, CHART_SCALE_TAG_HEIGHT);
   ctx.fillStyle = '#1e3a8a';
-  ctx.fillText(latestLabel, priceScaleTextX, latestLabelY);
+  ctx.fillText(latestLabel, latestChipX + latestChipW / 2, latestLabelY);
   ctx.textBaseline = 'alphabetic';
 }

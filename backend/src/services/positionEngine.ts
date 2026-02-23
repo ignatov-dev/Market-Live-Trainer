@@ -29,15 +29,23 @@ export class PositionEngine {
     this.track(position);
   }
 
-  unregister(positionId: string, symbol: string): void {
+  unregister(positionId: string, symbol: string, userId: string): void {
     const bucket = this.openBySymbol.get(symbol);
     if (!bucket) {
+      this.realtime.clearUnrealizedForUserSymbol(userId, symbol);
       return;
     }
 
     bucket.delete(positionId);
     if (bucket.size === 0) {
       this.openBySymbol.delete(symbol);
+      this.realtime.clearUnrealizedForUserSymbol(userId, symbol);
+      return;
+    }
+
+    const stillHasUserPositions = Array.from(bucket.values()).some((position) => position.userId === userId);
+    if (!stillHasUserPositions) {
+      this.realtime.clearUnrealizedForUserSymbol(userId, symbol);
     }
   }
 
@@ -82,7 +90,7 @@ export class PositionEngine {
         continue;
       }
 
-      this.unregister(closed.id, closed.symbol);
+      this.unregister(closed.id, closed.symbol, closed.userId);
       this.realtime.broadcast({
         type: 'position.closed',
         position: closed,

@@ -21,11 +21,13 @@ import type {
 interface Props {
   candles: Candle[];
   currentCandle: Candle;
+  pricePrecision?: number;
 }
 
 export default function ChartPanel({
   candles,
   currentCandle,
+  pricePrecision = 2,
 }: Props) {
   const dispatch = useAppDispatch();
   const pair = useAppSelector((s) => s.chart.pair);
@@ -72,6 +74,7 @@ export default function ChartPanel({
     chartEndIndex,
     chartMarkerTooltip,
     resizeToken,
+    pricePrecision,
     onChartViewSizeChange: handleChartViewSizeChange,
     onChartEndIndexChange: handleChartEndIndexChange,
     onChartMarkerTooltipChange: handleChartMarkerTooltipChange,

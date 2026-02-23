@@ -10,9 +10,10 @@ interface Params {
   datasets: Datasets;
   timeframeId: string;
   pair: string;
+  hasBackendAuth: boolean;
 }
 
-export function useSessionCandleEngine({ datasets, timeframeId, pair }: Params): void {
+export function useSessionCandleEngine({ datasets, timeframeId, pair, hasBackendAuth }: Params): void {
   const dispatch = useAppDispatch();
   const session = useAppSelector((s) => s.session.session);
   const sessionRef = useRef(session);
@@ -56,10 +57,12 @@ export function useSessionCandleEngine({ datasets, timeframeId, pair }: Params):
     let changed = false;
 
     for (const item of changedPairs) {
-      const afterPending = evaluatePendingOrders(next, item.liveCandle, item.pairId, marks);
-      if (afterPending !== next) {
-        next = afterPending;
-        changed = true;
+      if (!hasBackendAuth) {
+        const afterPending = evaluatePendingOrders(next, item.liveCandle, item.pairId, marks);
+        if (afterPending !== next) {
+          next = afterPending;
+          changed = true;
+        }
       }
 
       if (item.pairId === pair && next.replayIndex !== item.liveCandle.index) {
@@ -91,5 +94,5 @@ export function useSessionCandleEngine({ datasets, timeframeId, pair }: Params):
     for (const item of changedPairs) {
       processedSessionCandleTsRef.current[item.key] = item.ts;
     }
-  }, [datasets, dispatch, pair, timeframeId]);
+  }, [datasets, dispatch, hasBackendAuth, pair, timeframeId]);
 }

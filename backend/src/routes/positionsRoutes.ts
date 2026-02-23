@@ -66,9 +66,10 @@ export function registerPositionRoutes(
     realtime: RealtimeGateway;
     auth: AuthService;
     subscribeToSymbol: (symbol: string) => void;
+    resetLimitOrders?: (userId: string) => void;
   },
 ): void {
-  const { repository, engine, realtime, auth, subscribeToSymbol } = dependencies;
+  const { repository, engine, realtime, auth, subscribeToSymbol, resetLimitOrders } = dependencies;
 
   const requireUser = async (
     request: FastifyRequest,
@@ -194,6 +195,7 @@ export function registerPositionRoutes(
 
     const account = await repository.resetUserSession(userId);
     engine.resetUser(userId);
+    resetLimitOrders?.(userId);
     realtime.clearUnrealizedForUser(userId);
     realtime.broadcastAccountBalance(account, 'system');
     void realtime.broadcastScoreboard().catch((err: unknown) => {
@@ -281,7 +283,7 @@ export function registerPositionRoutes(
       return reply.code(409).send({ error: 'Position is already closed or not found.' });
     }
 
-    engine.unregister(closed.id, closed.symbol);
+    engine.unregister(closed.id, closed.symbol, closed.userId);
     realtime.broadcast({
       type: 'position.closed',
       position: closed,

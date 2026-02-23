@@ -25,6 +25,7 @@ import { useSessionCandleEngine } from './hooks/useSessionCandleEngine';
 import { usePatternNotifications } from './hooks/usePatternNotifications';
 import { useBackendPositionSyncController } from './hooks/useBackendPositionSyncController';
 import { useBackendAccountController } from './hooks/useBackendAccountController';
+import { useBackendLimitOrderSyncController } from './hooks/useBackendLimitOrderSyncController';
 
 export default function App() {
   const dispatch = useAppDispatch();
@@ -183,7 +184,7 @@ export default function App() {
     coinPaprikaId: pairMeta.coinPaprikaId,
     pairLabel: pairMeta.label,
   });
-  useSessionCandleEngine({ datasets, timeframeId, pair });
+  useSessionCandleEngine({ datasets, timeframeId, pair, hasBackendAuth });
   const {
     patternNotifications,
     dismissPatternNotification,
@@ -219,6 +220,11 @@ export default function App() {
     backendCloseSyncInFlightRef,
     backendCloseSyncedTradeIdsRef,
     backendClosedLocalIdsRef,
+  });
+  useBackendLimitOrderSyncController({
+    backendAuthToken,
+    hasBackendAuth,
+    sessionRef,
   });
   useBackendAccountController({
     backendAuthToken,
@@ -301,13 +307,13 @@ export default function App() {
           closedTradesCount={analyticsClosedTradesCount}
         />
 
-        <CoachPanel />
+        {/* <CoachPanel /> */}
 
         <ClosedTradesPanel />
 
         <NewsPanel />
 
-        <TimelinePanel />
+        {/* <TimelinePanel /> */}
 
       </LayoutGrid>
 

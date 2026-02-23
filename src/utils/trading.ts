@@ -142,9 +142,9 @@ export function getMarginRequirement(notional: number): number {
 
 export function getUsedMargin(
   session: Session,
-  options: { excludePendingOrderId?: number | null } = {},
+  options: { excludePendingOrderId?: string | number | null; includePendingOrders?: boolean } = {},
 ): number {
-  const { excludePendingOrderId = null } = options;
+  const { excludePendingOrderId = null, includePendingOrders = true } = options;
 
   const positionsMargin = session.positions.reduce(
     (sum, position) =>
@@ -152,12 +152,17 @@ export function getUsedMargin(
     0,
   );
 
-  const pendingMargin = session.pendingOrders.reduce((sum, order) => {
-    if (excludePendingOrderId !== null && order.id === excludePendingOrderId) {
-      return sum;
-    }
-    return sum + getMarginRequirement(getOrderNotional(order.limitPrice, order.qty));
-  }, 0);
+  const pendingMargin = includePendingOrders
+    ? session.pendingOrders.reduce((sum, order) => {
+      if (
+        excludePendingOrderId !== null &&
+        String(order.id) === String(excludePendingOrderId)
+      ) {
+        return sum;
+      }
+      return sum + getMarginRequirement(getOrderNotional(order.limitPrice, order.qty));
+    }, 0)
+    : 0;
 
   return positionsMargin + pendingMargin;
 }
@@ -496,6 +501,10 @@ export function evaluatePendingOrders(
   let hasChanges = false;
 
   for (const order of session.pendingOrders) {
+    if (typeof order.id === 'string') {
+      remainingOrders.push(order);
+      continue;
+    }
     if (order.pair !== pairId) {
       remainingOrders.push(order);
       continue;

@@ -75,8 +75,44 @@ export interface TradingAccount {
   updatedAt: Date;
 }
 
+export type LimitOrderSide = 'buy' | 'sell';
+export type LimitOrderStatus = 'pending' | 'filled' | 'canceled';
+
+export interface LimitOrder {
+  id: string;
+  userId: string;
+  symbol: string;
+  side: LimitOrderSide;
+  quantity: number;
+  limitPrice: number;
+  takeProfit: number | null;
+  stopLoss: number | null;
+  status: LimitOrderStatus;
+  positionId: string | null;
+  filledAt: Date | null;
+  canceledAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateLimitOrderInput {
+  userId: string;
+  symbol: string;
+  side: LimitOrderSide;
+  quantity: number;
+  limitPrice: number;
+  takeProfit: number | null;
+  stopLoss: number | null;
+}
+
 export interface ScoreboardEntry {
   userId: string;
   userName: string;
   netPnl: number;
+}
+
+export interface LimitOrderEvent {
+  type: 'limit_order.created' | 'limit_order.canceled' | 'limit_order.filled';
+  order: LimitOrder;
+  source: 'engine' | 'api';
 }

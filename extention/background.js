@@ -22,6 +22,10 @@ const AUTH_COOKIE_URL = 'https://market-live-trainer-react.onrender.com'; // adj
 const BACKEND_BASE_URL = 'https://market-live-trainer.onrender.com'; // adjust to match Vite's backendTarget
 // const BACKEND_BASE_URL = 'http://localhost:8080'; // adjust to match Vite's backendTarget
 
+// Margin model should match the React app (src/constants/trading.ts).
+// Keep in sync: LEVERAGE=1 implies margin requirement equals notional.
+const LEVERAGE = 1;
+
 let ws = null;
 let wsReconnectTimer = null;
 let wsReconnectAttempts = 0;
@@ -48,6 +52,37 @@ const popupPorts = new Set();
 function toFiniteNumber(value, fallback = null) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function getOrderNotional(price, qty) {
+  const safePrice = toFiniteNumber(price);
+  const safeQty = toFiniteNumber(qty);
+  if (!Number.isFinite(safePrice) || safePrice <= 0 || !Number.isFinite(safeQty) || safeQty <= 0) {
+    return 0;
+  }
+  return safePrice * safeQty;
+}
+
+function getMarginRequirement(notional) {
+  const safeNotional = toFiniteNumber(notional);
+  if (!Number.isFinite(safeNotional) || safeNotional <= 0) {
+    return 0;
+  }
+  return safeNotional / LEVERAGE;
+}
+
+function getUsedMarginFromBackendPositions(positions) {
+  if (!Array.isArray(positions) || positions.length === 0) {
+    return 0;
+  }
+
+  return positions.reduce((sum, position) => {
+    // Backend positions use { quantity, entryPrice }. Older/local shapes may use { qty, entryPrice }.
+    const qty = toFiniteNumber(position?.quantity, toFiniteNumber(position?.qty, null));
+    const entryPrice = toFiniteNumber(position?.entryPrice, null);
+    const notional = getOrderNotional(entryPrice, qty);
+    return sum + getMarginRequirement(notional);
+  }, 0);
 }
 
 async function applyBadgeStyle() {
@@ -86,6 +121,7 @@ function deriveState(state, nowTs) {
   const backendPositions = Array.isArray(safeState.backendPositions)
     ? safeState.backendPositions
     : [];
+  const usedMargin = getUsedMarginFromBackendPositions(backendPositions);
 
   const backendAccount = (function () {
     const account = safeState.backendAccount;
@@ -110,6 +146,8 @@ function deriveState(state, nowTs) {
     const accEquity = cashBalance + unrealizedNet;
     const accNetPnl = accEquity - accInitialBalance;
     const accReturnPct = accInitialBalance > 0 ? (accNetPnl / accInitialBalance) * 100 : 0;
+    const computedAvailableMargin = Math.max(accEquity - usedMargin, 0);
+    const backendAvailableMargin = toFiniteNumber(account.availableMargin, null);
 
     return {
       ...account,
@@ -119,8 +157,11 @@ function deriveState(state, nowTs) {
       netPnl: accNetPnl,
       unrealizedTotalNetPnl: unrealizedTotalNet,
       sessionReturnPct: accReturnPct,
-      // Use backend-provided availableMargin; fall back to equity if absent
-      availableMargin: toFiniteNumber(account.availableMargin, Math.max(accEquity, 0)),
+      usedMargin,
+      // Prefer backend-provided availableMargin when present; otherwise derive it consistently.
+      availableMargin: Number.isFinite(backendAvailableMargin)
+        ? backendAvailableMargin
+        : computedAvailableMargin,
     };
   })();
 

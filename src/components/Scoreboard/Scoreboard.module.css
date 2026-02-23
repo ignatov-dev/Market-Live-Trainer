@@ -99,7 +99,7 @@
 /* Rows — CSS grid keeps every column aligned across all tiers */
 .row {
   display: grid;
-  grid-template-columns: 68px 1fr 72px;
+  grid-template-columns: 40px 1fr 72px;
   align-items: center;
   padding: 7px 10px;
   border-radius: var(--radius-md);
@@ -142,12 +142,21 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
+  display: flex;
+  align-items: center;
+  justify-content: start;
 }
 
 .tierBadge.gold      { color: #b8860b; }
 .tierBadge.silver    { color: #607090; }
 .tierBadge.bronze    { color: #8b5e3c; }
 .tierBadge.candidate { color: #64748b; }
+
+.trophyIcon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
 
 .row.candidate {
   background: linear-gradient(90deg, rgba(100, 116, 139, 0.06) 0%, transparent 100%);

@@ -6,6 +6,7 @@ import type {
   Position,
   TradingAccount,
 } from '../types/domain.js';
+import { DEFAULT_INITIAL_BALANCE, FEE_RATE } from '../constants/trading.js';
 
 interface UpdatePositionBracketsInput {
   takeProfit: number | null;
@@ -41,8 +42,6 @@ interface TradingAccountRow {
   updated_at: Date;
 }
 
-const FEE_RATE = 0.0004;
-const DEFAULT_INITIAL_BALANCE = 10000;
 
 function arePricesEqual(left: number | null, right: number | null): boolean {
   if (left === right) {
@@ -473,6 +472,10 @@ export class PositionRepository {
 
       await client.query(
         'DELETE FROM account_ledger WHERE user_id = $1',
+        [userId],
+      );
+      await client.query(
+        'DELETE FROM limit_orders WHERE user_id = $1',
         [userId],
       );
       await client.query(

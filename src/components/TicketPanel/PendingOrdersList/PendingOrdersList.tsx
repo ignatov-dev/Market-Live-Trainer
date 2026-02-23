@@ -1,10 +1,10 @@
 import styles from './PendingOrdersList.module.css';
-import { fmtNumber, fmtPrice } from '../../../utils/formatters';
+import { fmtNumber, fmtPriceScale, getPairCompactLabel } from '../../../utils/formatters';
 import type { PendingOrder } from '../../../types/domain';
 
 interface Props {
   orders: PendingOrder[];
-  onCancel: (id: number) => void;
+  onCancel: (id: string | number) => void;
 }
 
 export default function PendingOrdersList({ orders, onCancel }: Props) {
@@ -18,11 +18,11 @@ export default function PendingOrdersList({ orders, onCancel }: Props) {
           orders.map((order) => (
             <div className={styles.listItem} key={order.id}>
               <div>
-                <strong>#{order.id}</strong> [{order.pair}] {order.side === 'buy' ? 'Buy' : 'Sell'} {fmtNumber(order.qty, 3)} @ ${fmtPrice(order.limitPrice)}
+                {getPairCompactLabel(order.pair)} {order.side === 'buy' ? 'Buy' : 'Sell'} {fmtNumber(order.qty, 3)} @ ${fmtPriceScale(order.limitPrice)}
                 <br />
                 <small>
-                  SL: {order.stopLoss ? `$${fmtPrice(order.stopLoss)}` : '-'} | TP:{' '}
-                  {order.takeProfit ? `$${fmtPrice(order.takeProfit)}` : '-'}
+                  SL: {order.stopLoss ? `$${fmtPriceScale(order.stopLoss)}` : '-'} | TP:{' '}
+                  {order.takeProfit ? `$${fmtPriceScale(order.takeProfit)}` : '-'}
                 </small>
               </div>
               <button type="button" className={styles.cancelBtn} onClick={() => onCancel(order.id)}>

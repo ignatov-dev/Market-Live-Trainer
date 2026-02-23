@@ -13,6 +13,20 @@ export function fmtPrice(value: number | null | undefined): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 6 });
 }
 
+export function fmtFixedPrice(
+  value: number | null | undefined,
+  digits = 2,
+): string {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return '-';
+  }
+  const safeDigits = Number.isFinite(digits) ? Math.max(0, Math.round(digits)) : 2;
+  return Number(value).toLocaleString(undefined, {
+    minimumFractionDigits: safeDigits,
+    maximumFractionDigits: safeDigits,
+  });
+}
+
 export function fmtPriceScale(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return '-';

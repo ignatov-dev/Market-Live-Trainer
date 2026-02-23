@@ -1,8 +1,8 @@
 export const DEFAULT_CHART_VIEW_SIZE = 92;
 export const MIN_CHART_VIEW_SIZE = 24;
 export const MAX_CHART_VIEW_SIZE = 1400;
-export const CHART_ZOOM_SENSITIVITY = 0.0014;
-export const CHART_PAN_SENSITIVITY = 0.08;
+export const CHART_ZOOM_SENSITIVITY = 0.00075;
+export const CHART_PAN_SENSITIVITY = 0.065;
 export const CHART_RIGHT_GAP_SLOTS = 6;
 export const CHART_PRICE_SCALE_TEXT_RIGHT_INSET = 4;
 export const CHART_SCALE_TAG_HEIGHT = 16;

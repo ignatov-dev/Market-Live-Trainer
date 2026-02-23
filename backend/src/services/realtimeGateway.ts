@@ -3,6 +3,7 @@ import { URL } from 'node:url';
 import type { Server as HttpServer } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import type {
+  LimitOrderEvent,
   PositionEvent,
   PositionPnlUpdate,
   PriceTick,
@@ -106,6 +107,22 @@ export class RealtimeGateway {
       }
 
       if (client.userId !== event.position.userId) {
+        continue;
+      }
+
+      client.socket.send(payload);
+    }
+  }
+
+  broadcastLimitOrder(event: LimitOrderEvent): void {
+    const payload = JSON.stringify(event);
+
+    for (const client of this.positionClients) {
+      if (client.socket.readyState !== WebSocket.OPEN) {
+        continue;
+      }
+
+      if (client.userId !== event.order.userId) {
         continue;
       }
 
@@ -223,6 +240,17 @@ export class RealtimeGateway {
   clearUnrealizedForUser(userId: string): void {
     for (const symbolMap of this.unrealizedBySymbolAndUser.values()) {
       symbolMap.delete(userId);
+    }
+  }
+
+  clearUnrealizedForUserSymbol(userId: string, symbol: string): void {
+    const symbolMap = this.unrealizedBySymbolAndUser.get(symbol);
+    if (!symbolMap) {
+      return;
+    }
+    symbolMap.delete(userId);
+    if (symbolMap.size === 0) {
+      this.unrealizedBySymbolAndUser.delete(symbol);
     }
   }
 

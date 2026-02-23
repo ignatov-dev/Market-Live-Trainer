@@ -9,13 +9,22 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { mergePairCandles } from '../store/slices/chartSlice';
 import type { Datasets } from '../types/domain';
 import { applyLiveTickToCandles } from '../components/CandleChart/utils/candles';
-import type { PositionClosedEvent, PositionCreatedEvent } from '../integration/usePositionEvents';
+import type {
+  LimitOrderCanceledEvent,
+  LimitOrderCreatedEvent,
+  LimitOrderFilledEvent,
+  PositionClosedEvent,
+  PositionCreatedEvent,
+} from '../integration/usePositionEvents';
 import type { PositionPnlEvent } from '../integration/usePositionPnlEvents';
 import type { AccountBalanceEvent } from '../integration/useAccountEvents';
 
 interface WebsocketContextValue {
   subscribeClosedEvents: (listener: (event: PositionClosedEvent) => void) => () => void;
   subscribeCreatedEvents: (listener: (event: PositionCreatedEvent) => void) => () => void;
+  subscribeLimitOrderCreatedEvents: (listener: (event: LimitOrderCreatedEvent) => void) => () => void;
+  subscribeLimitOrderCanceledEvents: (listener: (event: LimitOrderCanceledEvent) => void) => () => void;
+  subscribeLimitOrderFilledEvents: (listener: (event: LimitOrderFilledEvent) => void) => () => void;
   subscribePnlEvents: (listener: (event: PositionPnlEvent) => void) => () => void;
   subscribeAccountEvents: (listener: (event: AccountBalanceEvent) => void) => () => void;
 }
@@ -32,6 +41,9 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
   const datasetsRef = useRef<Datasets>(datasets);
   const closedListenersRef = useRef(new Set<(event: PositionClosedEvent) => void>());
   const createdListenersRef = useRef(new Set<(event: PositionCreatedEvent) => void>());
+  const limitOrderCreatedListenersRef = useRef(new Set<(event: LimitOrderCreatedEvent) => void>());
+  const limitOrderCanceledListenersRef = useRef(new Set<(event: LimitOrderCanceledEvent) => void>());
+  const limitOrderFilledListenersRef = useRef(new Set<(event: LimitOrderFilledEvent) => void>());
   const pnlListenersRef = useRef(new Set<(event: PositionPnlEvent) => void>());
   const accountListenersRef = useRef(new Set<(event: AccountBalanceEvent) => void>());
   datasetsRef.current = datasets;
@@ -47,6 +59,27 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
     createdListenersRef.current.add(listener);
     return () => {
       createdListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const subscribeLimitOrderCreatedEvents = useCallback((listener: (event: LimitOrderCreatedEvent) => void) => {
+    limitOrderCreatedListenersRef.current.add(listener);
+    return () => {
+      limitOrderCreatedListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const subscribeLimitOrderCanceledEvents = useCallback((listener: (event: LimitOrderCanceledEvent) => void) => {
+    limitOrderCanceledListenersRef.current.add(listener);
+    return () => {
+      limitOrderCanceledListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const subscribeLimitOrderFilledEvents = useCallback((listener: (event: LimitOrderFilledEvent) => void) => {
+    limitOrderFilledListenersRef.current.add(listener);
+    return () => {
+      limitOrderFilledListenersRef.current.delete(listener);
     };
   }, []);
 
@@ -76,6 +109,24 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const handleLimitOrderCreated = useCallback((event: LimitOrderCreatedEvent) => {
+    for (const listener of limitOrderCreatedListenersRef.current) {
+      listener(event);
+    }
+  }, []);
+
+  const handleLimitOrderCanceled = useCallback((event: LimitOrderCanceledEvent) => {
+    for (const listener of limitOrderCanceledListenersRef.current) {
+      listener(event);
+    }
+  }, []);
+
+  const handleLimitOrderFilled = useCallback((event: LimitOrderFilledEvent) => {
+    for (const listener of limitOrderFilledListenersRef.current) {
+      listener(event);
+    }
+  }, []);
+
   const handlePnl = useCallback((event: PositionPnlEvent) => {
     for (const listener of pnlListenersRef.current) {
       listener(event);
@@ -92,6 +143,9 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
     authToken: backendAuthToken,
     onClosed: handleClosed,
     onCreated: handleCreated,
+    onLimitOrderCreated: handleLimitOrderCreated,
+    onLimitOrderCanceled: handleLimitOrderCanceled,
+    onLimitOrderFilled: handleLimitOrderFilled,
   });
 
   usePositionPnlEvents({
@@ -236,10 +290,21 @@ export function WebsocketProvider({ children }: { children: ReactNode }) {
     () => ({
       subscribeClosedEvents,
       subscribeCreatedEvents,
+      subscribeLimitOrderCreatedEvents,
+      subscribeLimitOrderCanceledEvents,
+      subscribeLimitOrderFilledEvents,
       subscribePnlEvents,
       subscribeAccountEvents,
     }),
-    [subscribeAccountEvents, subscribeClosedEvents, subscribeCreatedEvents, subscribePnlEvents],
+    [
+      subscribeAccountEvents,
+      subscribeClosedEvents,
+      subscribeCreatedEvents,
+      subscribeLimitOrderCanceledEvents,
+      subscribeLimitOrderCreatedEvents,
+      subscribeLimitOrderFilledEvents,
+      subscribePnlEvents,
+    ],
   );
 
   return <WebsocketContext.Provider value={value}>{children}</WebsocketContext.Provider>;

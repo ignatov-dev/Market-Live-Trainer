@@ -37,14 +37,14 @@ export default function AnalyticsPanel({ metrics, session, closedTradesCount }: 
           isPositive={metrics.profitFactor === null ? null : metrics.profitFactor >= 1.2}
         />
         <MetricCard label="Max Drawdown" value={`${fmtNumber(metrics.maxDrawdown, 2)}%`} isPositive={false} />
-        <MetricCard label="Avg R" value={metrics.avgR === null ? '-' : `${fmtNumber(metrics.avgR, 2)}R`} />
+        {/* <MetricCard label="Avg R" value={metrics.avgR === null ? '-' : `${fmtNumber(metrics.avgR, 2)}R`} /> */}
         <MetricCard
           label="Avg Hold"
           value={metrics.avgHold === null ? '-' : `${fmtNumber(metrics.avgHold, 1)} candles`}
         />
         <MetricCard label="Closed Trades" value={`${closedTradesCount}`} />
       </div>
-      <EquityCurve equityHistory={session.equityHistory} />
+      {/* <EquityCurve equityHistory={session.equityHistory} /> */}
     </section>
   );
 }
