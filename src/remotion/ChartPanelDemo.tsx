@@ -22,14 +22,22 @@ import {
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const FONT =
-  '"SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif';
+  '"Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+const MONO =
+  '"JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace';
+const INK = "#edf3ff";
+const MUTED = "#93a6c8";
+const LINE_SOFT = "rgba(132, 165, 223, 0.2)";
+const LINE_STRONG = "rgba(150, 187, 250, 0.34)";
+const SURFACE_1 = "rgba(14, 20, 34, 0.78)";
+const SURFACE_2 = "rgba(10, 14, 24, 0.88)";
 
 // ─── Background (same as SessionSummaryCard) ──────────────────────────────────
 
 const BG = [
-  "radial-gradient(120% 92% at 0% 0%, rgba(209,207,247,0.95) 0%, rgba(209,207,247,0.52) 44%, rgba(209,207,247,0) 76%)",
-  "radial-gradient(115% 94% at 100% 0%, rgba(184,217,243,0.94) 0%, rgba(184,217,243,0.56) 46%, rgba(184,217,243,0) 78%)",
-  "linear-gradient(180deg, #d1cff7 0%, #b8d9f3 58%, #ffffff 100%)",
+  "radial-gradient(120% 90% at 0% 0%, rgba(0, 102, 255, 0.20) 0%, rgba(0, 102, 255, 0) 50%)",
+  "radial-gradient(120% 90% at 100% 0%, rgba(0, 193, 122, 0.14) 0%, rgba(0, 193, 122, 0) 52%)",
+  "linear-gradient(180deg, #121827 0%, #0a0a0f 56%)",
 ].join(", ");
 
 interface BlobProps {
@@ -213,25 +221,25 @@ function ChartSvg({ w, h, liveClose }: ChartSvgProps) {
       xmlns="http://www.w3.org/2000/svg"
     >
       {/* Background */}
-      <rect width={w} height={h} fill="#f8fbff" />
+      <rect width={w} height={h} fill={SURFACE_2} />
 
       {/* ── Horizontal grid lines ── */}
       {yTicks.map(({ y }, i) => (
         <line key={`hy${i}`} x1={PAD.left} y1={y} x2={scaleX} y2={y}
-          stroke="#e3e8f2" strokeWidth={1} />
+          stroke="rgba(126, 162, 225, 0.2)" strokeWidth={1} />
       ))}
 
       {/* ── Price scale vertical separator ── */}
       <line x1={scaleX} y1={PAD.top} x2={scaleX} y2={PAD.top + chartH}
-        stroke="#cfd8e3" strokeWidth={1} />
+        stroke="rgba(143, 178, 239, 0.3)" strokeWidth={1} />
 
       {/* ── Price axis labels ── */}
       {yTicks.map(({ y, price }, i) => (
         <g key={`py${i}`}>
           <rect x={labelX - 3} y={y - 7} width={LABEL_W} height={14}
-            fill="rgba(249,251,255,0.92)" />
+            fill="rgba(14, 22, 38, 0.92)" />
           <text x={labelX} y={y} dominantBaseline="middle"
-            fontFamily={FONT} fontSize={10} fill="#5f6d82">
+            fontFamily={MONO} fontSize={10} fill="rgba(185, 209, 247, 0.88)">
             ${fmtScale(price)}
           </text>
         </g>
@@ -240,17 +248,17 @@ function ChartSvg({ w, h, liveClose }: ChartSvgProps) {
       {/* ── Vertical dashed time lines ── */}
       {xTicks.map(({ x }, i) => (
         <line key={`vl${i}`} x1={x} y1={PAD.top} x2={x} y2={PAD.top + chartH}
-          stroke="#e9edf4" strokeWidth={1} strokeDasharray="3 3" />
+          stroke="rgba(126, 162, 225, 0.2)" strokeWidth={1} strokeDasharray="3 3" />
       ))}
 
       {/* ── Time axis ticks + labels ── */}
       {xTicks.map(({ x, label, align }, i) => (
         <g key={`xl${i}`}>
           <line x1={x} y1={PAD.top + chartH} x2={x} y2={PAD.top + chartH + 5}
-            stroke="#cfd8e3" strokeWidth={1} />
+            stroke="rgba(143, 178, 239, 0.3)" strokeWidth={1} />
           <text x={x} y={PAD.top + chartH + 24}
             textAnchor={align as "start" | "middle" | "end"}
-            fontFamily={FONT} fontSize={10} fill="#5f6d82">
+            fontFamily={MONO} fontSize={10} fill="rgba(185, 209, 247, 0.84)">
             {label}
           </text>
         </g>
@@ -271,12 +279,12 @@ function ChartSvg({ w, h, liveClose }: ChartSvgProps) {
           <g key={`c${idx}`}>
             {/* Wick */}
             <line x1={x} y1={highY} x2={x} y2={lowY}
-              stroke={rising ? "#0f766e" : "#b42318"} strokeWidth={1} />
+              stroke={rising ? "#00c17a" : "#bb3b51"} strokeWidth={1} />
             {/* Body */}
             <rect
               x={x - bodyW / 2} y={bodyTop}
               width={bodyW} height={bodyH}
-              fill={rising ? "#12b981" : "#ef4444"}
+              fill={rising ? "#00c17a" : "#bb3b51"}
             />
           </g>
         );
@@ -284,14 +292,14 @@ function ChartSvg({ w, h, liveClose }: ChartSvgProps) {
 
       {/* ── Last price dashed horizontal line ── */}
       <line x1={scaleX} y1={lastY} x2={lastCandleX} y2={lastY}
-        stroke="#1d4ed8" strokeWidth={1} strokeDasharray="4 4" />
+        stroke="#2d7cff" strokeWidth={1} strokeDasharray="4 4" />
 
       {/* ── Last price label chip ── */}
       <rect x={labelX - 3} y={lastY - 8} width={LABEL_W} height={16}
-        fill="rgba(223,235,255,0.98)"
-        stroke="rgba(29,78,216,0.38)" strokeWidth={1} />
+        fill="rgba(14, 22, 38, 0.95)"
+        stroke="rgba(45, 124, 255, 0.55)" strokeWidth={1} />
       <text x={labelX} y={lastY} dominantBaseline="middle"
-        fontFamily={FONT} fontSize={10} fill="#1e3a8a">
+        fontFamily={MONO} fontSize={10} fill="rgba(185, 209, 247, 0.92)">
         {lastLabel}
       </text>
     </svg>
@@ -347,11 +355,11 @@ export const ChartPanelDemo = () => {
     <AbsoluteFill style={{ background: BG, overflow: "hidden", fontFamily: FONT }}>
 
       {/* ── Ambient blobs ── */}
-      <Blob cx={200}  cy={180}  r={260} color="rgba(209,207,247,0.55)" opacity={1} frame={frame} speedX={0.018} speedY={0.012} phase={0} />
-      <Blob cx={1720} cy={200}  r={220} color="rgba(184,217,243,0.60)" opacity={1} frame={frame} speedX={0.014} speedY={0.020} phase={2.1} />
-      <Blob cx={960}  cy={900}  r={300} color="rgba(220,215,250,0.40)" opacity={1} frame={frame} speedX={0.010} speedY={0.008} phase={1.0} />
-      <Blob cx={400}  cy={820}  r={180} color="rgba(184,217,243,0.35)" opacity={1} frame={frame} speedX={0.022} speedY={0.016} phase={3.5} />
-      <Blob cx={1580} cy={780}  r={200} color="rgba(209,207,247,0.38)" opacity={1} frame={frame} speedX={0.016} speedY={0.024} phase={5.2} />
+      <Blob cx={200}  cy={180}  r={260} color="rgba(0,102,255,0.18)" opacity={1} frame={frame} speedX={0.018} speedY={0.012} phase={0} />
+      <Blob cx={1720} cy={200}  r={220} color="rgba(0,193,122,0.16)" opacity={1} frame={frame} speedX={0.014} speedY={0.020} phase={2.1} />
+      <Blob cx={960}  cy={900}  r={300} color="rgba(0,102,255,0.10)" opacity={1} frame={frame} speedX={0.010} speedY={0.008} phase={1.0} />
+      <Blob cx={400}  cy={820}  r={180} color="rgba(0,193,122,0.11)" opacity={1} frame={frame} speedX={0.022} speedY={0.016} phase={3.5} />
+      <Blob cx={1580} cy={780}  r={200} color="rgba(0,102,255,0.10)" opacity={1} frame={frame} speedX={0.016} speedY={0.024} phase={5.2} />
 
       {/* ── Panel ── */}
       <div style={{
@@ -361,8 +369,9 @@ export const ChartPanelDemo = () => {
         width:       PW,
         height:      PH,
         borderRadius: 14,                  // --radius-lg
-        background:   "#ffffff",
-        boxShadow:    "0 4px 14px rgba(32,52,84,0.08)",
+        border:       `1px solid ${LINE_STRONG}`,
+        background:   "linear-gradient(165deg, rgba(20, 28, 46, 0.68) 0%, rgba(12, 16, 28, 0.78) 100%)",
+        boxShadow:    "0 20px 45px rgba(0, 0, 0, 0.42)",
         padding:      PAD,
         boxSizing:    "border-box" as const,
         overflow:     "hidden",
@@ -378,7 +387,7 @@ export const ChartPanelDemo = () => {
           bottom:        0,
           left:          0,
           borderRadius:  14,
-          background:    "linear-gradient(180deg, rgba(255,255,255,0.46) 0%, rgba(255,255,255,0) 44%)",
+          background:    "linear-gradient(180deg, rgba(202, 223, 255, 0.2) 0%, rgba(202, 223, 255, 0) 44%)",
           pointerEvents: "none",
         }} />
 
@@ -396,34 +405,28 @@ export const ChartPanelDemo = () => {
           <div style={{
             display:      "inline-flex",
             alignItems:   "center",
-            borderRadius: 999,
-            background:   "#f8fbff",
+            gap:          2,
+            borderRadius: 12,
+            background:   "linear-gradient(170deg, rgba(18, 27, 45, 0.7) 0%, rgba(11, 16, 28, 0.72) 100%)",
+            border:       `1px solid ${LINE_SOFT}`,
             padding:      3,
           }}>
             {PAIRS.map((label, i) => (
-              <React.Fragment key={label}>
-                <span style={{
-                  borderRadius:  999,
-                  padding:       "7px 11px",
-                  fontSize:      12,
+                <span key={label} style={{
+                  borderRadius:  9,
+                  padding:       "6px 10px",
+                  fontSize:      11,
                   fontWeight:    600,
-                  letterSpacing: "0.01em",
+                  letterSpacing: "0.05em",
                   lineHeight:    1.2,
+                  textTransform: "uppercase",
+                  fontFamily:    MONO,
                   whiteSpace:    "nowrap",
-                  color:         i === ACTIVE_PAIR ? "#1f4f96" : "#65758e",
+                  color:         i === ACTIVE_PAIR ? INK : MUTED,
+                  background:    i === ACTIVE_PAIR ? "rgba(130, 163, 220, 0.16)" : "transparent",
                 }}>
                   {label}
                 </span>
-                {i < PAIRS.length - 1 && (
-                  <span style={{
-                    display:    "inline-block",
-                    width:      1,
-                    height:     12,
-                    margin:     "0 1px",
-                    background: "rgba(149,169,199,0.45)",
-                  }} />
-                )}
-              </React.Fragment>
             ))}
           </div>
 
@@ -431,34 +434,28 @@ export const ChartPanelDemo = () => {
           <div style={{
             display:      "inline-flex",
             alignItems:   "center",
-            borderRadius: 999,
-            background:   "#f8fbff",
+            gap:          2,
+            borderRadius: 12,
+            background:   "linear-gradient(170deg, rgba(18, 27, 45, 0.7) 0%, rgba(11, 16, 28, 0.72) 100%)",
+            border:       `1px solid ${LINE_SOFT}`,
             padding:      3,
           }}>
             {TIMEFRAMES.map((label, i) => (
-              <React.Fragment key={label}>
-                <span style={{
-                  borderRadius:  999,
+                <span key={label} style={{
+                  borderRadius:  9,
                   padding:       "6px 10px",
-                  fontSize:      12,
+                  fontSize:      11,
                   fontWeight:    600,
-                  letterSpacing: "0.01em",
+                  letterSpacing: "0.05em",
                   lineHeight:    1.2,
+                  textTransform: "uppercase",
+                  fontFamily:    MONO,
                   whiteSpace:    "nowrap",
-                  color:         i === ACTIVE_TF ? "#1f4f96" : "#65758e",
+                  color:         i === ACTIVE_TF ? INK : MUTED,
+                  background:    i === ACTIVE_TF ? "rgba(130, 163, 220, 0.16)" : "transparent",
                 }}>
                   {label}
                 </span>
-                {i < TIMEFRAMES.length - 1 && (
-                  <span style={{
-                    display:    "inline-block",
-                    width:      1,
-                    height:     12,
-                    margin:     "0 1px",
-                    background: "rgba(149,169,199,0.45)",
-                  }} />
-                )}
-              </React.Fragment>
             ))}
           </div>
         </div>
@@ -480,15 +477,15 @@ export const ChartPanelDemo = () => {
             ] as const
           ).map(({ label, value }) => (
             <div key={label} style={{
-              background:   "#f8fbff",
-              border:       "1px solid rgba(156,175,204,0.46)",
+              background:   SURFACE_1,
+              border:       `1px solid ${LINE_SOFT}`,
               borderRadius: 10,
               padding:      "9px 10px",
             }}>
               {/* .label */}
               <p style={{
                 margin:        "0 0 3px",
-                color:         "#68788f",
+                color:         MUTED,
                 fontSize:      10,
                 textTransform: "uppercase" as const,
                 letterSpacing: "0.05em",
@@ -500,8 +497,9 @@ export const ChartPanelDemo = () => {
                 margin:             0,
                 fontWeight:         620,
                 fontSize:           14,
-                color:              "#223753",
+                color:              INK,
                 fontVariantNumeric: "tabular-nums",
+                fontFamily:         MONO,
               }}>
                 {value}
               </p>
@@ -513,12 +511,13 @@ export const ChartPanelDemo = () => {
         <div style={{
           marginTop:    12,
           width:        INNER_W,
-          border:       "1px solid rgba(152,172,201,0.5)",
+          border:       `1px solid ${LINE_STRONG}`,
           borderRadius: 12,
           overflow:     "hidden",
           height:       CHART_H,
           boxSizing:    "border-box" as const,
-          background:   "#f8fbff",
+          background:   SURFACE_2,
+          boxShadow:    "inset 0 1px 0 rgba(191, 218, 255, 0.12)",
         }}>
           <ChartSvg w={INNER_W - 2} h={CHART_H - 2} liveClose={liveClose} />
         </div>

@@ -22,17 +22,22 @@ import {
 // ─── Design tokens (matches app CSS vars) ────────────────────────────────────
 
 const FONT =
-  '"SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif';
-const SUCCESS = "#1b8a63";
+  '"Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+const MONO =
+  '"JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace';
+const SUCCESS = "#00c17a";
 const DANGER  = "#bb3b51";
-const INK     = "#17253d";
+const INK     = "#edf3ff";
+const MUTED   = "#93a6c8";
+const LINE_SOFT = "rgba(132, 165, 223, 0.2)";
+const LINE_STRONG = "rgba(150, 187, 250, 0.34)";
 
 // ─── Background gradient (from user spec) ────────────────────────────────────
 
 const BG = [
-  "radial-gradient(120% 92% at 0% 0%, rgba(209,207,247,0.95) 0%, rgba(209,207,247,0.52) 44%, rgba(209,207,247,0) 76%)",
-  "radial-gradient(115% 94% at 100% 0%, rgba(184,217,243,0.94) 0%, rgba(184,217,243,0.56) 46%, rgba(184,217,243,0) 78%)",
-  "linear-gradient(180deg, #d1cff7 0%, #b8d9f3 58%, #ffffff 100%)",
+  "radial-gradient(120% 90% at 0% 0%, rgba(0, 102, 255, 0.20) 0%, rgba(0, 102, 255, 0) 50%)",
+  "radial-gradient(120% 90% at 100% 0%, rgba(0, 193, 122, 0.14) 0%, rgba(0, 193, 122, 0) 52%)",
+  "linear-gradient(180deg, #121827 0%, #0a0a0f 56%)",
 ].join(", ");
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -122,8 +127,8 @@ function Cell({ label, children, delay, frame, fps }: CellProps) {
     <div style={{
       padding:      "7px 8px",
       borderRadius: 12,
-      background:   "linear-gradient(170deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 100%)",
-      border:       "1px solid rgba(255,255,255,0.17)",
+      background:   "linear-gradient(170deg, rgba(18, 27, 45, 0.7) 0%, rgba(11, 16, 28, 0.7) 100%)",
+      border:       `1px solid ${LINE_SOFT}`,
       display:      "grid",
       gap:          2,
       opacity:      entrance,
@@ -132,7 +137,7 @@ function Cell({ label, children, delay, frame, fps }: CellProps) {
       {/* .grid p > span */}
       <span style={{
         fontSize:      10,
-        opacity:       0.76,
+        color:         MUTED,
         textTransform: "uppercase" as const,
         letterSpacing: "0.06em",
         fontFamily:    FONT,
@@ -180,15 +185,15 @@ export const SessionSummaryCard = () => {
     <AbsoluteFill style={{ background: BG, overflow: "hidden" }}>
 
       {/* ── Ambient blobs ────────────────────────────────────────────────── */}
-      <Blob cx={200}  cy={180}  r={260} color="rgba(209,207,247,0.55)" opacity={1}
+      <Blob cx={200}  cy={180}  r={260} color="rgba(0,102,255,0.18)" opacity={1}
         frame={frame} speedX={0.018} speedY={0.012} phase={0} />
-      <Blob cx={1720} cy={200}  r={220} color="rgba(184,217,243,0.60)" opacity={1}
+      <Blob cx={1720} cy={200}  r={220} color="rgba(0,193,122,0.16)" opacity={1}
         frame={frame} speedX={0.014} speedY={0.020} phase={2.1} />
-      <Blob cx={960}  cy={900}  r={300} color="rgba(220,215,250,0.40)" opacity={1}
+      <Blob cx={960}  cy={900}  r={300} color="rgba(0,102,255,0.10)" opacity={1}
         frame={frame} speedX={0.010} speedY={0.008} phase={1.0} />
-      <Blob cx={400}  cy={820}  r={180} color="rgba(184,217,243,0.35)" opacity={1}
+      <Blob cx={400}  cy={820}  r={180} color="rgba(0,193,122,0.11)" opacity={1}
         frame={frame} speedX={0.022} speedY={0.016} phase={3.5} />
-      <Blob cx={1580} cy={780}  r={200} color="rgba(209,207,247,0.38)" opacity={1}
+      <Blob cx={1580} cy={780}  r={200} color="rgba(0,102,255,0.10)" opacity={1}
         frame={frame} speedX={0.016} speedY={0.024} phase={5.2} />
 
       {/* ── Card wrapper — position + float + scale ───────────────────────── */}
@@ -211,9 +216,9 @@ export const SessionSummaryCard = () => {
           width:         CARD_W + 60,
           height:        CARD_H + 60,
           borderRadius:  32,
-          background:    "rgba(120,100,200,0.18)",
+          background:    "rgba(0, 102, 255, 0.24)",
           filter:        `blur(${shadowBlur / CARD_SCALE}px)`,
-          opacity:       shadowOpacity * 6,
+          opacity:       shadowOpacity * 2.8,
           pointerEvents: "none",
         }} />
 
@@ -222,17 +227,16 @@ export const SessionSummaryCard = () => {
           position:             "relative",
           width:                CARD_W,
           height:               CARD_H,
-          background:           "linear-gradient(165deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 100%)",
-          border:               "1px solid rgba(255,255,255,0.34)",
+          background:           "linear-gradient(165deg, rgba(19, 27, 44, 0.72) 0%, rgba(12, 16, 27, 0.74) 100%)",
+          border:               `1px solid ${LINE_STRONG}`,
           borderRadius:         20,
           backdropFilter:       "blur(14px)",
           WebkitBackdropFilter: "blur(14px)",
           padding:              "14px 14px 12px",
           boxSizing:            "border-box" as const,
           boxShadow: [
-            "inset 0 1px 0 rgba(255,255,255,0.34)",
-            `0 ${(shadowBlur * 0.4) / CARD_SCALE}px ${(shadowBlur * 1.0) / CARD_SCALE}px rgba(9,28,56,${shadowOpacity * 1.4})`,
-            "0 2px 8px rgba(80,60,160,0.08)",
+            "inset 0 1px 0 rgba(188, 215, 255, 0.2)",
+            `0 ${(shadowBlur * 0.4) / CARD_SCALE}px ${(shadowBlur * 1.0) / CARD_SCALE}px rgba(0, 0, 0, ${shadowOpacity * 1.5})`,
           ].join(", "),
           display:       "flex",
           flexDirection: "column",
@@ -250,13 +254,13 @@ export const SessionSummaryCard = () => {
 
             <Cell label="Source" delay={8} frame={frame} fps={fps}>
               {/* .grid strong */}
-              <strong style={{ fontSize: 13, fontWeight: 620, lineHeight: 1.25, color: INK }}>
+              <strong style={{ fontSize: 13, fontWeight: 620, lineHeight: 1.25, color: INK, fontFamily: MONO }}>
                 Coinbase
               </strong>
             </Cell>
 
             <Cell label="Mode" delay={12} frame={frame} fps={fps}>
-              <strong style={{ fontSize: 13, fontWeight: 620, lineHeight: 1.25, color: INK }}>
+              <strong style={{ fontSize: 13, fontWeight: 620, lineHeight: 1.25, color: INK, fontFamily: MONO }}>
                 Live
               </strong>
             </Cell>
@@ -267,6 +271,7 @@ export const SessionSummaryCard = () => {
                 fontSize:   13, fontWeight: 620, lineHeight: 1.25, color: INK,
                 display:    "inline-flex", alignItems: "baseline",
                 gap:        6, flexWrap: "nowrap" as const,
+                fontFamily: MONO,
               }}>
                 {/* .valuePrimary */}
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(equity)}</span>
@@ -285,6 +290,7 @@ export const SessionSummaryCard = () => {
               <strong style={{
                 fontSize: 13, fontWeight: 620, lineHeight: 1.25, color: INK,
                 fontVariantNumeric: "tabular-nums",
+                fontFamily: MONO,
               }}>
                 ${fmt(availableMargin)}
               </strong>
@@ -294,6 +300,7 @@ export const SessionSummaryCard = () => {
               <strong style={{
                 fontSize: 13, fontWeight: 620, lineHeight: 1.25, color: INK,
                 fontVariantNumeric: "tabular-nums",
+                fontFamily: MONO,
               }}>
                 ${fmt(cashBalance)}
               </strong>
@@ -304,6 +311,7 @@ export const SessionSummaryCard = () => {
                 fontSize: 13, fontWeight: 620, lineHeight: 1.25,
                 fontVariantNumeric: "tabular-nums",
                 color: sessionReturn >= 0 ? SUCCESS : DANGER,
+                fontFamily: MONO,
               }}>
                 {fmtPct(sessionReturn)}
               </strong>
@@ -323,7 +331,7 @@ export const SessionSummaryCard = () => {
                   <div style={{
                     width:      1,
                     alignSelf:  "stretch",
-                    background: "rgba(16,38,76,0.2)",
+                    background: LINE_SOFT,
                     flexShrink: 0,
                   }} />
                 )}
@@ -336,7 +344,7 @@ export const SessionSummaryCard = () => {
                   fontWeight:    600,
                   letterSpacing: "0.06em",
                   textTransform: "uppercase" as const,
-                  color:         "rgba(16,38,76,0.72)",
+                  color:         MUTED,
                   fontFamily:    FONT,
                 }}>
                   {label}
@@ -350,12 +358,12 @@ export const SessionSummaryCard = () => {
       {/* ── Progress bar ─────────────────────────────────────────────────────── */}
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0, height: 3,
-        background: "rgba(100,80,180,0.12)",
+        background: "rgba(0, 102, 255, 0.12)",
       }}>
         <div style={{
           width:        `${(frame / 300) * 100}%`,
           height:       "100%",
-          background:   "linear-gradient(90deg, #a89de8 0%, #7db8e8 100%)",
+          background:   "linear-gradient(90deg, #2d7cff 0%, #00c17a 100%)",
           borderRadius: "0 2px 2px 0",
         }} />
       </div>

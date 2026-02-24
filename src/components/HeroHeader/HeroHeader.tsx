@@ -5,6 +5,7 @@ import AuthPanel from './AuthPanel/AuthPanel';
 import SessionSummary from './SessionSummary/SessionSummary';
 import NewsTicker from './NewsTicker/NewsTicker';
 import Scoreboard from '../Scoreboard/Scoreboard';
+import DemoButton from './DemoButton/DemoButton';
 import type { SessionMetrics, Session, NewsItem } from '../../types/domain';
 
 type AuthMode = 'signup' | 'signin';
@@ -56,6 +57,7 @@ export default function HeroHeader({
 }: Props) {
   const { scrollY } = useScroll();
   const heroFadeOpacity = useTransform(scrollY, [0, 100, 160], [1, 0.6, 0]);
+
   const tickerTitles = useMemo(() => {
     const fallback = `No fresh ${pairLabel} headlines right now.`;
     if (!Array.isArray(newsItems) || newsItems.length === 0) {
@@ -85,6 +87,7 @@ export default function HeroHeader({
             Practice Today. Profit Tomorrow.
           </p>
         </div>
+          <DemoButton />
       </motion.div>
 
       <motion.div className={styles.rightGroup} style={{ opacity: heroFadeOpacity }}>

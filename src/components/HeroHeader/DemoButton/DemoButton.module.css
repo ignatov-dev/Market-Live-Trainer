@@ -1,0 +1,198 @@
+.button {
+  appearance: none;
+  border: 1px solid var(--line-soft);
+  background: linear-gradient(170deg, rgba(18, 27, 45, 0.7) 0%, rgba(11, 16, 28, 0.7) 100%);
+  border-radius: 12px;
+  margin-top: 10px;
+  min-height: 50px;
+  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  box-shadow: inset 0 1px 0 rgba(188, 215, 255, 0.12);
+}
+
+.copy {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+}
+
+.label {
+  margin: 0;
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+}
+
+.caption {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 620;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.iconWrap {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  background: linear-gradient(170deg, rgba(18, 27, 45, 0.78) 0%, rgba(11, 16, 28, 0.78) 100%);
+}
+
+.icon {
+  width: 12px;
+  height: 12px;
+  color: var(--muted);
+}
+
+.button:hover {
+  border-color: var(--line-strong);
+  box-shadow:
+    inset 0 1px 0 rgba(188, 215, 255, 0.18),
+    0 8px 18px rgba(0, 0, 0, 0.28);
+  transform: translateY(-1px);
+}
+
+.button:hover .icon,
+.button:hover .caption {
+  color: var(--ink);
+}
+
+.button:active {
+  transform: translateY(0);
+}
+
+.button:focus-visible {
+  outline: 2px solid rgba(31, 122, 255, 0.3);
+  outline-offset: 2px;
+}
+
+.videoModalBackdrop {
+  background: rgba(9, 14, 24, 0.64);
+  backdrop-filter: blur(10px);
+}
+
+.videoModalPanel {
+  width: min(80vw, calc(100vw - 32px));
+  height: min(80vh, calc(100vh - 32px));
+  border-radius: 16px;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(165deg, rgba(19, 27, 44, 0.94) 0%, rgba(12, 16, 27, 0.94) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(188, 215, 255, 0.2),
+    0 24px 42px rgba(0, 0, 0, 0.5);
+}
+
+.videoModalBody {
+  width: 100%;
+  height: 100%;
+}
+
+.videoShell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.videoCloseButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(186, 206, 236, 0.48);
+  border-radius: 10px;
+  background: rgba(7, 12, 22, 0.62);
+  color: #e6f0ff;
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.videoCloseButton:hover {
+  border-color: rgba(213, 228, 250, 0.72);
+  background: rgba(7, 12, 22, 0.78);
+}
+
+.videoCloseButton:active {
+  transform: scale(0.98);
+}
+
+.videoCloseButton:focus-visible {
+  outline: 2px solid rgba(198, 224, 255, 0.9);
+  outline-offset: 2px;
+}
+
+.videoCloseIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #060b15;
+  object-fit: cover;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+}
+
+:global(body[data-theme='light']) .button,
+:global(body[data-theme='light']) .iconWrap {
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.9) 0%, rgba(245, 250, 255, 0.82) 100%);
+  border-color: rgba(129, 160, 212, 0.24);
+}
+
+:global(body[data-theme='light']) .button:hover {
+  border-color: rgba(117, 146, 194, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 8px 18px rgba(31, 67, 132, 0.14);
+}
+
+:global(body[data-theme='light']) .videoModalBackdrop {
+  background: rgba(162, 178, 201, 0.36);
+}
+
+:global(body[data-theme='light']) .videoModalPanel {
+  border-color: rgba(117, 146, 194, 0.32);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.9) 0%, rgba(244, 250, 255, 0.88) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 20px 36px rgba(31, 67, 132, 0.18);
+}
+
+:global(body[data-theme='light']) .video {
+  background: #eef5ff;
+}
+
+:global(body[data-theme='light']) .videoCloseButton {
+  border-color: rgba(117, 146, 194, 0.4);
+  background: rgba(255, 255, 255, 0.76);
+  color: #1f375b;
+}
+
+:global(body[data-theme='light']) .videoCloseButton:hover {
+  border-color: rgba(86, 124, 180, 0.56);
+  background: rgba(255, 255, 255, 0.92);
+}

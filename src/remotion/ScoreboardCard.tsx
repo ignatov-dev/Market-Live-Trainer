@@ -23,15 +23,20 @@ import {
 // ─── Design tokens (match app CSS vars / SessionSummaryCard) ─────────────────
 
 const FONT =
-  '"SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif';
-const SUCCESS = "#1b8a63";
+  '"Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+const MONO =
+  '"JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace';
+const SUCCESS = "#00c17a";
 const DANGER = "#bb3b51";
-const INK = "#17253d";
+const INK = "#edf3ff";
+const MUTED = "#93a6c8";
+const LINE_SOFT = "rgba(132, 165, 223, 0.2)";
+const LINE_STRONG = "rgba(150, 187, 250, 0.34)";
 
 const BG = [
-  "radial-gradient(120% 92% at 0% 0%, rgba(209,207,247,0.95) 0%, rgba(209,207,247,0.52) 44%, rgba(209,207,247,0) 76%)",
-  "radial-gradient(115% 94% at 100% 0%, rgba(184,217,243,0.94) 0%, rgba(184,217,243,0.56) 46%, rgba(184,217,243,0) 78%)",
-  "linear-gradient(180deg, #d1cff7 0%, #b8d9f3 58%, #ffffff 100%)",
+  "radial-gradient(120% 90% at 0% 0%, rgba(0, 102, 255, 0.20) 0%, rgba(0, 102, 255, 0) 50%)",
+  "radial-gradient(120% 90% at 100% 0%, rgba(0, 193, 122, 0.14) 0%, rgba(0, 193, 122, 0) 52%)",
+  "linear-gradient(180deg, #121827 0%, #0a0a0f 56%)",
 ].join(", ");
 
 // ─── Ambient blob (same vibe as other Remotion demos) ────────────────────────
@@ -151,21 +156,21 @@ function rowStyleForTier(tier: ReturnType<typeof tierForRank>) {
     case "gold":
       return {
         background:
-          "linear-gradient(90deg, rgba(255, 215, 0, 0.10) 0%, transparent 100%)",
+          "linear-gradient(90deg, rgba(255, 215, 0, 0.08) 0%, transparent 100%)",
         border: "1px solid rgba(218, 165, 32, 0.22)",
         badge: "#b8860b",
       };
     case "silver":
       return {
         background:
-          "linear-gradient(90deg, rgba(176, 196, 222, 0.5) 0%, transparent 100%)",
+          "linear-gradient(90deg, rgba(176, 196, 222, 0.2) 0%, transparent 100%)",
         border: "1px solid rgba(176, 196, 222, 0.2)",
         badge: "#607090",
       };
     case "bronze":
       return {
         background:
-          "linear-gradient(90deg, rgba(205, 133, 63, 0.10) 0%, transparent 100%)",
+          "linear-gradient(90deg, rgba(205, 133, 63, 0.08) 0%, transparent 100%)",
         border: "1px solid rgba(205, 133, 63, 0.20)",
         badge: "#8b5e3c",
       };
@@ -174,7 +179,7 @@ function rowStyleForTier(tier: ReturnType<typeof tierForRank>) {
         background:
           "linear-gradient(90deg, rgba(100, 116, 139, 0.07) 0%, transparent 100%)",
         border: "1px solid rgba(100, 116, 139, 0.16)",
-        badge: "#64748b",
+        badge: MUTED,
       };
   }
 }
@@ -417,7 +422,7 @@ export const ScoreboardCard = () => {
         cx={200}
         cy={180}
         r={260}
-        color="rgba(209,207,247,0.55)"
+        color="rgba(0,102,255,0.18)"
         opacity={1}
         frame={frame}
         speedX={0.018}
@@ -428,7 +433,7 @@ export const ScoreboardCard = () => {
         cx={1720}
         cy={200}
         r={220}
-        color="rgba(184,217,243,0.60)"
+        color="rgba(0,193,122,0.16)"
         opacity={1}
         frame={frame}
         speedX={0.014}
@@ -439,7 +444,7 @@ export const ScoreboardCard = () => {
         cx={960}
         cy={900}
         r={300}
-        color="rgba(220,215,250,0.40)"
+        color="rgba(0,102,255,0.10)"
         opacity={1}
         frame={frame}
         speedX={0.01}
@@ -469,9 +474,9 @@ export const ScoreboardCard = () => {
             width: CARD_W + 60,
             height: CARD_H + 60,
             borderRadius: 32,
-            background: "rgba(120,100,200,0.18)",
+            background: "rgba(0, 102, 255, 0.24)",
             filter: `blur(${48 / CARD_SCALE}px)`,
-            opacity: 1.1,
+            opacity: 0.56,
             pointerEvents: "none",
           }}
         />
@@ -483,15 +488,15 @@ export const ScoreboardCard = () => {
             width: CARD_W,
             height: CARD_H,
             background:
-              "linear-gradient(165deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 100%)",
-            border: "1px solid rgba(255,255,255,0.34)",
+              "linear-gradient(165deg, rgba(19, 27, 44, 0.72) 0%, rgba(12, 16, 27, 0.74) 100%)",
+            border: `1px solid ${LINE_STRONG}`,
             borderRadius: 20,
             backdropFilter: "blur(14px)",
             WebkitBackdropFilter: "blur(14px)",
             padding: "14px 14px 12px",
             boxSizing: "border-box" as const,
             boxShadow:
-              "inset 0 1px 0 rgba(255,255,255,0.34), 0 10px 24px rgba(9, 28, 56, 0.25)",
+              "inset 0 1px 0 rgba(188, 215, 255, 0.2), 0 14px 28px rgba(0, 0, 0, 0.36)",
             display: "flex",
             flexDirection: "column",
             fontFamily: FONT,
@@ -681,6 +686,7 @@ export const ScoreboardCard = () => {
                         fontSize: 13,
                         fontWeight: 800,
                         fontVariantNumeric: "tabular-nums",
+                        fontFamily: MONO,
                         color: isPositive ? SUCCESS : DANGER,
                         textAlign: "right" as const,
                       }}
@@ -697,7 +703,7 @@ export const ScoreboardCard = () => {
             <div
               style={{
                 height: 1,
-                background: "rgba(16,38,76,0.10)",
+                background: LINE_SOFT,
                 margin: "8px 0 6px",
               }}
             />
@@ -705,7 +711,7 @@ export const ScoreboardCard = () => {
             <div
               style={{
                 fontSize: 11,
-                color: "rgba(16,38,76,0.62)",
+                color: MUTED,
                 textAlign: "center",
                 lineHeight: 1.2,
                 opacity: interpolate(frame, [28, 44], [0, 1], {
@@ -729,14 +735,14 @@ export const ScoreboardCard = () => {
           left: 0,
           right: 0,
           height: 3,
-          background: "rgba(100,80,180,0.12)",
+          background: "rgba(0, 102, 255, 0.12)",
         }}
       >
         <div
           style={{
             width: `${(frame / 300) * 100}%`,
             height: "100%",
-            background: "linear-gradient(90deg, #a89de8 0%, #7db8e8 100%)",
+            background: "linear-gradient(90deg, #2d7cff 0%, #00c17a 100%)",
             borderRadius: "0 2px 2px 0",
           }}
         />

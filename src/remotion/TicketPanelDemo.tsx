@@ -33,16 +33,24 @@ import {
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const FONT =
-  '"SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif';
-const SUCCESS = "#1b8a63";
+  '"Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+const MONO =
+  '"JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace';
+const INK = "#edf3ff";
+const MUTED = "#93a6c8";
+const LINE_SOFT = "rgba(132, 165, 223, 0.2)";
+const LINE_STRONG = "rgba(150, 187, 250, 0.34)";
+const SURFACE_1 = "rgba(14, 20, 34, 0.78)";
+const SURFACE_2 = "rgba(10, 14, 24, 0.88)";
+const SUCCESS = "#00c17a";
 const DANGER  = "#bb3b51";
 
 // ─── Background ───────────────────────────────────────────────────────────────
 
 const BG = [
-  "radial-gradient(120% 92% at 0% 0%, rgba(209,207,247,0.95) 0%, rgba(209,207,247,0.52) 44%, rgba(209,207,247,0) 76%)",
-  "radial-gradient(115% 94% at 100% 0%, rgba(184,217,243,0.94) 0%, rgba(184,217,243,0.56) 46%, rgba(184,217,243,0) 78%)",
-  "linear-gradient(180deg, #d1cff7 0%, #b8d9f3 58%, #ffffff 100%)",
+  "radial-gradient(120% 90% at 0% 0%, rgba(0, 102, 255, 0.20) 0%, rgba(0, 102, 255, 0) 50%)",
+  "radial-gradient(120% 90% at 100% 0%, rgba(0, 193, 122, 0.14) 0%, rgba(0, 193, 122, 0) 52%)",
+  "linear-gradient(180deg, #121827 0%, #0a0a0f 56%)",
 ].join(", ");
 
 interface BlobProps {
@@ -92,15 +100,6 @@ const PY      = (1080 - PH) / 2;   // 292
 const PAD     = 16;
 const INNER_W = PW - PAD * 2;      // 408
 
-// Tabs geometry:
-//   root inner width = INNER_W − 2×4(pad) = 400
-//   tabW = (400 − 4(gap)) / 2 = 198
-//   tabH = 9(pad) + ⌈12×1.2⌉(text15) + 9(pad) = 33
-const TAB_W = (INNER_W - 8 - 4) / 2; // 198
-const TAB_H = 9 + 15 + 9;            // 33
-// "Limit" is tab index 1 → indicator left = 4(pad) + 198(tabW) + 4(gap) = 206
-const LIMIT_INDICATOR_LEFT = 4 + TAB_W + 4; // 206
-
 // ─── Styled primitives ────────────────────────────────────────────────────────
 
 function Input({
@@ -114,13 +113,13 @@ function Input({
 }) {
   return (
     <div style={{
-      border:             "1px solid rgba(141,161,189,0.54)",
-      borderRadius:       8,
-      padding:            `10px ${paddingRight}px 10px 11px`,
-      fontSize:           14,
-      color:              value ? "#17253d" : "rgba(23,37,61,0.35)",
-      background:         "#ffffff",
-      fontFamily:         FONT,
+      border:             `1px solid ${LINE_SOFT}`,
+      borderRadius:       10,
+      padding:            `9px ${paddingRight}px 9px 10px`,
+      fontSize:           13,
+      color:              value ? INK : "rgba(147,166,200,0.45)",
+      background:         SURFACE_2,
+      fontFamily:         MONO,
       fontVariantNumeric: "tabular-nums",
       lineHeight:         1.2,
       boxSizing:          "border-box" as const,
@@ -135,7 +134,7 @@ function Input({
 function FieldLabel({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ display: "grid", gap: 5 }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: "#60718b", fontFamily: FONT }}>
+      <span style={{ fontSize: 12, fontWeight: 600, color: MUTED, fontFamily: FONT }}>
         {label}
       </span>
       {children}
@@ -212,11 +211,11 @@ export const TicketPanelDemo = () => {
     <AbsoluteFill style={{ background: BG, overflow: "hidden", fontFamily: FONT }}>
 
       {/* ── Ambient blobs ── */}
-      <Blob cx={200}  cy={180}  r={260} color="rgba(209,207,247,0.55)" opacity={1} frame={frame} speedX={0.018} speedY={0.012} phase={0} />
-      <Blob cx={1720} cy={200}  r={220} color="rgba(184,217,243,0.60)" opacity={1} frame={frame} speedX={0.014} speedY={0.020} phase={2.1} />
-      <Blob cx={960}  cy={900}  r={300} color="rgba(220,215,250,0.40)" opacity={1} frame={frame} speedX={0.010} speedY={0.008} phase={1.0} />
-      <Blob cx={400}  cy={820}  r={180} color="rgba(184,217,243,0.35)" opacity={1} frame={frame} speedX={0.022} speedY={0.016} phase={3.5} />
-      <Blob cx={1580} cy={780}  r={200} color="rgba(209,207,247,0.38)" opacity={1} frame={frame} speedX={0.016} speedY={0.024} phase={5.2} />
+      <Blob cx={200}  cy={180}  r={260} color="rgba(0,102,255,0.18)" opacity={1} frame={frame} speedX={0.018} speedY={0.012} phase={0} />
+      <Blob cx={1720} cy={200}  r={220} color="rgba(0,193,122,0.16)" opacity={1} frame={frame} speedX={0.014} speedY={0.020} phase={2.1} />
+      <Blob cx={960}  cy={900}  r={300} color="rgba(0,102,255,0.10)" opacity={1} frame={frame} speedX={0.010} speedY={0.008} phase={1.0} />
+      <Blob cx={400}  cy={820}  r={180} color="rgba(0,193,122,0.11)" opacity={1} frame={frame} speedX={0.022} speedY={0.016} phase={3.5} />
+      <Blob cx={1580} cy={780}  r={200} color="rgba(0,102,255,0.10)" opacity={1} frame={frame} speedX={0.016} speedY={0.024} phase={5.2} />
 
       {/* ── Panel (section.panel.ticket-panel) ── */}
       <div style={{
@@ -226,8 +225,9 @@ export const TicketPanelDemo = () => {
         width:        PW,
         height:       PH,
         borderRadius: 14,
-        background:   "#ffffff",
-        boxShadow:    "0 4px 14px rgba(32,52,84,0.08)",
+        border:       `1px solid ${LINE_STRONG}`,
+        background:   "linear-gradient(165deg, rgba(20, 28, 46, 0.68) 0%, rgba(12, 16, 28, 0.78) 100%)",
+        boxShadow:    "0 20px 45px rgba(0, 0, 0, 0.42)",
         padding:      PAD,
         boxSizing:    "border-box" as const,
         overflow:     "hidden",
@@ -240,7 +240,7 @@ export const TicketPanelDemo = () => {
         <div style={{
           position: "absolute", top: 0, right: 0, bottom: 0, left: 0,
           borderRadius: 14,
-          background: "linear-gradient(180deg, rgba(255,255,255,0.46) 0%, rgba(255,255,255,0) 44%)",
+          background: "linear-gradient(180deg, rgba(202, 223, 255, 0.2) 0%, rgba(202, 223, 255, 0) 44%)",
           pointerEvents: "none",
         }} />
 
@@ -254,33 +254,40 @@ export const TicketPanelDemo = () => {
           }}>
             {/* Tabs root */}
             <div style={{
-              position: "relative",
               display: "grid",
               gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 4, padding: 4, borderRadius: 10, background: "#f8fbff",
+              gap: 2,
+              padding: 3,
+              borderRadius: 12,
+              background: "linear-gradient(170deg, rgba(18, 27, 45, 0.7) 0%, rgba(11, 16, 28, 0.72) 100%)",
+              border: `1px solid ${LINE_SOFT}`,
             }}>
-              {/* .activeIndicator — under "Limit" tab (index 1) */}
-              <div style={{
-                position:     "absolute",
-                left:         LIMIT_INDICATOR_LEFT, // 206
-                top:          4,
-                width:        TAB_W,  // 198
-                height:       TAB_H,  // 33
-                borderRadius: 8,
-                background:   "#eaf1fb",
-                pointerEvents: "none",
-              }} />
               {/* Market tab (inactive) */}
               <div style={{
-                position: "relative", zIndex: 1, borderRadius: 8,
-                fontSize: 12, fontWeight: 600, padding: "9px 10px",
-                color: "#63748d", textAlign: "center", fontFamily: FONT,
+                borderRadius: 9,
+                fontSize: 11,
+                fontWeight: 600,
+                padding: "6px 10px",
+                color: MUTED,
+                textAlign: "center",
+                fontFamily: MONO,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                lineHeight: 1.2,
               }}>Market</div>
               {/* Limit tab (active) */}
               <div style={{
-                position: "relative", zIndex: 1, borderRadius: 8,
-                fontSize: 12, fontWeight: 600, padding: "9px 10px",
-                color: "#1f4f96", textAlign: "center", fontFamily: FONT,
+                borderRadius: 9,
+                fontSize: 11,
+                fontWeight: 600,
+                padding: "6px 10px",
+                color: INK,
+                textAlign: "center",
+                fontFamily: MONO,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                lineHeight: 1.2,
+                background: "rgba(130, 163, 220, 0.16)",
               }}>Limit</div>
             </div>
           </div>
@@ -299,9 +306,9 @@ export const TicketPanelDemo = () => {
             </FieldLabel>
           </div>
 
-          {/* ticketBracketsRow — grid 2-col, gap:10 */}
+          {/* ticketBracketsRow — grid 2-col, gap:8 */}
           <div style={{
-            display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10,
+            display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8,
             opacity: bracketsIn, transform: `translateY(${(1 - bracketsIn) * 8}px)`,
           }}>
             {/* Take-profit */}
@@ -313,7 +320,7 @@ export const TicketPanelDemo = () => {
                   transform: "translateY(-50%)",
                   fontSize: 12, fontWeight: 700,
                   fontVariantNumeric: "tabular-nums", letterSpacing: "0.01em",
-                  color: SUCCESS, fontFamily: FONT, pointerEvents: "none",
+                  color: SUCCESS, fontFamily: MONO, pointerEvents: "none",
                   opacity: tpPnlOpacity,
                 }}>
                   {TP_PNL}
@@ -330,7 +337,7 @@ export const TicketPanelDemo = () => {
                   transform: "translateY(-50%)",
                   fontSize: 12, fontWeight: 700,
                   fontVariantNumeric: "tabular-nums", letterSpacing: "0.01em",
-                  color: DANGER, fontFamily: FONT, pointerEvents: "none",
+                  color: DANGER, fontFamily: MONO, pointerEvents: "none",
                   opacity: slPnlOpacity,
                 }}>
                   {SL_PNL}
@@ -347,22 +354,26 @@ export const TicketPanelDemo = () => {
           }}>
             {/* Buy/Long — brightens on press */}
             <div style={{
-              minHeight:     40, borderRadius: 8,
+              minHeight:     40, borderRadius: 10,
               border:        `1px solid rgba(16,129,81,${buyBorderAlpha.toFixed(3)})`,
               background:    `rgba(16,129,81,${buyBgAlpha.toFixed(3)})`,
               color:         SUCCESS,
-              fontSize:      12, fontWeight: 600, fontFamily: FONT,
+              fontSize:      12, fontWeight: 600, fontFamily: MONO,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
               Buy / Long
             </div>
             {/* Sell/Short */}
             <div style={{
-              minHeight:     40, borderRadius: 8,
+              minHeight:     40, borderRadius: 10,
               border:        "1px solid rgba(191,35,61,0.34)",
               background:    "rgba(191,35,61,0.08)",
               color:         DANGER,
-              fontSize:      12, fontWeight: 600, fontFamily: FONT,
+              fontSize:      12, fontWeight: 600, fontFamily: MONO,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
               Sell / Short
@@ -378,16 +389,17 @@ export const TicketPanelDemo = () => {
           {/* h3 — .panel h3 */}
           <h3 style={{
             margin: "0 0 10px", fontSize: 14, fontWeight: 600,
-            color: "#334761", fontFamily: FONT, lineHeight: 1.2,
+            color: MUTED, fontFamily: MONO, lineHeight: 1.2,
           }}>
             Pending Limit Orders
           </h3>
 
           {/* .listBox */}
           <div style={{
-            border: "1px solid rgba(154,173,203,0.5)",
+            border: `1px solid ${LINE_STRONG}`,
             borderRadius: 10, padding: 8,
-            background: "#f9fbff", fontSize: 13, fontFamily: FONT,
+            background: SURFACE_1, fontSize: 13, fontFamily: FONT,
+            color: INK,
             minHeight: 92, boxSizing: "border-box" as const,
           }}>
 
@@ -396,7 +408,7 @@ export const TicketPanelDemo = () => {
               <div style={{
                 opacity: orderOpacity,
                 transform: `translateY(${(1 - orderOpacity) * 6}px)`,
-                borderBottom: "1px solid rgba(154,173,203,0.35)",
+                borderBottom: `1px solid ${LINE_SOFT}`,
               }}>
                 <div style={{
                   display: "flex", justifyContent: "space-between",
@@ -405,11 +417,11 @@ export const TicketPanelDemo = () => {
                   <div>
                     BTC/USDT Buy 0.010 @ $97,450.00
                     <br />
-                    <small style={{ color: "#64758d" }}>SL: $96,800.00 | TP: $99,200.00</small>
+                    <small style={{ color: MUTED }}>SL: $96,800.00 | TP: $99,200.00</small>
                   </div>
                   <div style={{
-                    border: "1px solid rgba(134,156,190,0.5)",
-                    background: "#ffffff", color: "#2b4567",
+                    border: `1px solid ${LINE_STRONG}`,
+                    background: SURFACE_2, color: INK,
                     borderRadius: 8, padding: "7px 10px",
                     fontWeight: 600, fontSize: 12, flexShrink: 0, fontFamily: FONT,
                   }}>
@@ -427,11 +439,11 @@ export const TicketPanelDemo = () => {
               <div>
                 BTC/USDT Buy 0.005 @ $96,100.00
                 <br />
-                <small style={{ color: "#64758d" }}>SL: $95,400.00 | TP: $98,500.00</small>
+                <small style={{ color: MUTED }}>SL: $95,400.00 | TP: $98,500.00</small>
               </div>
               <div style={{
-                border: "1px solid rgba(134,156,190,0.5)",
-                background: "#ffffff", color: "#2b4567",
+                border: `1px solid ${LINE_STRONG}`,
+                background: SURFACE_2, color: INK,
                 borderRadius: 8, padding: "7px 10px",
                 fontWeight: 600, fontSize: 12, flexShrink: 0, fontFamily: FONT,
               }}>
