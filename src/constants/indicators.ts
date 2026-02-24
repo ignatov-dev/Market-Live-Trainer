@@ -5,9 +5,9 @@ export type SmaPeriod = (typeof SMA_PERIODS)[number];
 export type SmaConfig = Record<SmaPeriod, boolean>;
 
 export const DEFAULT_SMA_CONFIG: SmaConfig = {
-  50: true,
-  100: true,
-  200: true,
+  50: false,
+  100: false,
+  200: false,
 };
 
 export const SMA_COLORS: Record<SmaPeriod, string> = {

@@ -40,7 +40,14 @@ export default function PositionBracketModal({
   onFieldChange,
 }: Props) {
   return (
-    <Modal isOpen={isOpen} title={title} onClose={onClose}>
+    <Modal
+      isOpen={isOpen}
+      title={title}
+      onClose={onClose}
+      panelClassName={styles.panel}
+      bodyClassName={styles.body}
+      backdropClassName={styles.backdrop}
+    >
       <form
         className={styles.form}
         onSubmit={(event) => { event.preventDefault(); onSave(); }}

@@ -35,7 +35,7 @@ export default function DemoVideoModal({ isOpen, onClose }: Props) {
         </button>
         <video
           className={styles.video}
-          src="/out/LightCardsSequence.mp4"
+          src="/LightCardsSequence.mp4"
           autoPlay
           playsInline
         />

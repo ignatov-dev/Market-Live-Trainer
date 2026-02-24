@@ -3,7 +3,7 @@ import type { SmaConfig, SmaPeriod } from '../../constants/indicators';
 import { DEFAULT_SMA_CONFIG, SMA_PERIODS } from '../../constants/indicators';
 import type { Datasets, NewsByPair, ChartMarkerTooltip, Candle } from '../../types/domain';
 
-const SMA_CONFIG_STORAGE_KEY = 'market-live-trainer:sma-config';
+const SMA_CONFIG_STORAGE_KEY = 'market-live-trainer:sma-config:v2';
 
 const canUseStorage = (): boolean =>
   typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';

@@ -1,21 +1,99 @@
+.backdrop {
+  background: rgba(8, 12, 22, 0.58);
+  backdrop-filter: blur(10px);
+}
+
+.panel {
+  width: min(520px, 100%);
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(165deg, rgba(19, 27, 44, 0.94) 0%, rgba(12, 16, 27, 0.94) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(188, 215, 255, 0.2),
+    0 18px 38px rgba(0, 0, 0, 0.45);
+}
+
+.body {
+  padding: 14px 16px 16px;
+}
+
 .form {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .form label {
   display: grid;
-  gap: 5px;
-  font-size: 12px;
+  gap: 6px;
+  font-size: 11px;
   color: var(--muted);
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.form input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: linear-gradient(170deg, rgba(17, 24, 40, 0.72) 0%, rgba(10, 14, 24, 0.78) 100%);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 1px 0 rgba(183, 211, 255, 0.14);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.form input:hover:not(:disabled) {
+  border-color: var(--line-strong);
+}
+
+.form input:focus-visible {
+  outline: none;
+  border-color: rgba(42, 111, 219, 0.74);
+  box-shadow: var(--glow);
+}
+
+.form input:disabled {
+  opacity: 1;
+  color: var(--muted);
+  background: linear-gradient(170deg, rgba(17, 24, 40, 0.46) 0%, rgba(10, 14, 24, 0.52) 100%);
+}
+
+.form :global(.bracket-field-input) {
+  padding-right: 126px;
+}
+
+.form :global(.bracket-field-pnl) {
+  right: 10px;
+  color: var(--muted);
+}
+
+.form :global(.bracket-field-pnl.is-pos) {
+  color: var(--success);
+}
+
+.form :global(.bracket-field-pnl.is-neg) {
+  color: var(--danger);
 }
 
 .meta {
   margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(17, 24, 40, 0.52);
 }
 
 .actions {
@@ -27,14 +105,15 @@
 
 .btn {
   appearance: none;
-  border-radius: 8px;
-  min-height: 34px;
-  padding: 0 12px;
+  border-radius: 10px;
+  min-height: 36px;
+  padding: 0 14px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 620;
+  letter-spacing: 0.02em;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: border-color 160ms ease, background-color 160ms ease, opacity 160ms ease;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
 }
 
 .btn:disabled {
@@ -44,27 +123,90 @@
 
 .btnSave {
   color: #f7faff;
-  background: var(--brand);
+  background: linear-gradient(180deg, var(--brand-strong) 0%, var(--brand) 100%);
   border-color: rgba(35, 87, 170, 0.42);
+  box-shadow: 0 8px 18px rgba(17, 42, 92, 0.36);
 }
 
 .btnSave:hover:not(:disabled) {
-  background: var(--brand-strong);
+  border-color: rgba(102, 153, 245, 0.64);
+  box-shadow: 0 10px 22px rgba(17, 42, 92, 0.42);
 }
 
 .btnDelete {
   background: rgba(var(--danger-rgb), 0.08);
   color: var(--danger);
-  border-color: rgba(var(--danger-rgb), 0.28);
+  border-color: rgba(var(--danger-rgb), 0.3);
 }
 
 .btnDelete:hover:not(:disabled) {
-  background: rgba(var(--danger-rgb), 0.12);
+  background: rgba(var(--danger-rgb), 0.15);
+  border-color: rgba(var(--danger-rgb), 0.42);
 }
 
 .fieldError {
   margin: -2px 0 0;
-  color: var(--danger);
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--danger-rgb), 0.3);
+  background: rgba(var(--danger-rgb), 0.12);
+  color: #ff9aa8;
   font-size: 12px;
   line-height: 1.4;
+}
+
+:global(body[data-theme='light']) .backdrop {
+  background: rgba(147, 165, 195, 0.36);
+}
+
+:global(body[data-theme='light']) .panel {
+  border-color: rgba(117, 146, 194, 0.34);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.94) 0%, rgba(245, 250, 255, 0.92) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 18px 36px rgba(31, 67, 132, 0.2);
+}
+
+:global(body[data-theme='light']) .form input {
+  border-color: rgba(117, 146, 194, 0.34);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 252, 255, 0.96) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+:global(body[data-theme='light']) .form input:hover:not(:disabled) {
+  border-color: rgba(99, 138, 214, 0.56);
+}
+
+:global(body[data-theme='light']) .form input:disabled {
+  color: rgba(84, 104, 139, 0.9);
+  background: linear-gradient(180deg, rgba(241, 247, 255, 0.96) 0%, rgba(235, 243, 255, 0.9) 100%);
+}
+
+:global(body[data-theme='light']) .meta {
+  border-color: rgba(117, 146, 194, 0.34);
+  background: rgba(236, 244, 255, 0.9);
+}
+
+:global(body[data-theme='light']) .btnSave {
+  border-color: rgba(31, 93, 204, 0.48);
+  box-shadow: 0 9px 16px rgba(32, 81, 169, 0.22);
+}
+
+:global(body[data-theme='light']) .btnSave:hover:not(:disabled) {
+  box-shadow: 0 11px 20px rgba(32, 81, 169, 0.28);
+}
+
+:global(body[data-theme='light']) .btnDelete {
+  background: rgba(var(--danger-rgb), 0.1);
+  border-color: rgba(var(--danger-rgb), 0.26);
+}
+
+:global(body[data-theme='light']) .btnDelete:hover:not(:disabled) {
+  background: rgba(var(--danger-rgb), 0.16);
+}
+
+:global(body[data-theme='light']) .fieldError {
+  color: #9a2c3f;
+  border-color: rgba(var(--danger-rgb), 0.28);
+  background: rgba(var(--danger-rgb), 0.1);
 }
