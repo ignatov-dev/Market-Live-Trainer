@@ -6,20 +6,20 @@
 }
 
 .pill {
-  background: #f8fbff;
-  border: 1px solid rgba(156, 175, 204, 0.46);
+  background: var(--surface-1);
+  border: 1px solid var(--line-soft);
   border-radius: 10px;
   padding: 9px 10px;
   transition: border-color 160ms ease;
 }
 
 .pill:hover {
-  border-color: rgba(105, 138, 186, 0.6);
+  border-color: rgba(110, 158, 248, 0.62);
 }
 
 .label {
   margin: 0 0 3px;
-  color: #68788f;
+  color: var(--muted);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -29,7 +29,7 @@
   margin: 0;
   font-weight: 620;
   font-size: 14px;
-  color: #223753;
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 

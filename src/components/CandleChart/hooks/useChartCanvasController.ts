@@ -10,6 +10,7 @@ import { clampChartViewSize, easeOutCubic } from '../utils/candles';
 import { drawCandles } from '../drawCandles';
 import type { Candle, ChartMarkerTooltip, ClosedTrade, LocalPosition } from '../../../types/domain';
 import type { ChartCrosshair, MarkerHotspot } from '../drawCandles';
+import type { SmaConfig } from '../../../constants/indicators';
 
 interface Params {
   candles: Candle[];
@@ -23,6 +24,7 @@ interface Params {
   chartMarkerTooltip: ChartMarkerTooltip | null;
   resizeToken: number;
   pricePrecision: number;
+  smaConfig: SmaConfig;
   onChartViewSizeChange: (next: number) => void;
   onChartEndIndexChange: (next: number | null) => void;
   onChartMarkerTooltipChange: (next: ChartMarkerTooltip | null) => void;
@@ -55,6 +57,7 @@ export function useChartCanvasController({
   chartMarkerTooltip,
   resizeToken,
   pricePrecision,
+  smaConfig,
   onChartViewSizeChange,
   onChartEndIndexChange,
   onChartMarkerTooltipChange,
@@ -78,6 +81,7 @@ export function useChartCanvasController({
     viewSize: DEFAULT_CHART_VIEW_SIZE,
     timeframeId,
     pricePrecision,
+    smaConfig,
   });
 
   chartEndIndexRef.current = chartEndIndex;
@@ -99,6 +103,7 @@ export function useChartCanvasController({
     viewSize: chartViewSize,
     timeframeId,
     pricePrecision,
+    smaConfig,
   };
 
   const hasCustomChartScale = useMemo(
@@ -130,6 +135,7 @@ export function useChartCanvasController({
       state.viewSize,
       state.timeframeId,
       state.pricePrecision,
+      state.smaConfig,
       chartCrosshairRef.current,
       chartMarkerHotspotsRef,
     );
@@ -286,6 +292,7 @@ export function useChartCanvasController({
     chartViewSize,
     timeframeId,
     pricePrecision,
+    smaConfig,
     resizeToken,
     redrawChartWithCurrentState,
   ]);

@@ -3,14 +3,14 @@
   z-index: 1;
   width: 100%;
   height: 100%;
-  background: linear-gradient(180deg, #f9fbff 0%, #eff4fc 100%);
+  background: linear-gradient(180deg, var(--surface-1) 0%, rgba(19, 28, 46, 0.84) 100%);
 }
 
 .chartSkeleton::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.56) 50%, transparent 70%);
+  background: linear-gradient(115deg, transparent 30%, rgba(139, 177, 238, 0.22) 50%, transparent 70%);
   transform: translateX(-100%);
   animation: chartSkeletonSweep 1.8s linear infinite;
 }
@@ -22,8 +22,8 @@
   bottom: 52px;
   left: 16px;
   background-image:
-    linear-gradient(to bottom, rgba(189, 203, 225, 0.55) 1px, transparent 1px),
-    linear-gradient(to right, rgba(214, 224, 240, 0.45) 1px, transparent 1px);
+    linear-gradient(to bottom, rgba(118, 149, 204, 0.34) 1px, transparent 1px),
+    linear-gradient(to right, rgba(118, 149, 204, 0.24) 1px, transparent 1px);
   background-size:
     100% calc(100% / 4),
     calc(100% / 5) 100%;
@@ -35,7 +35,7 @@
   right: 58px;
   bottom: 52px;
   width: 1px;
-  background: rgba(193, 207, 227, 0.9);
+  background: rgba(125, 158, 218, 0.42);
 }
 
 .chartSkeletonPriceLabels {
@@ -53,7 +53,7 @@
 .chartSkeletonPriceLabels span {
   height: 14px;
   border-radius: 4px;
-  background: rgba(209, 221, 239, 0.9);
+  background: rgba(112, 145, 205, 0.42);
 }
 
 .chartSkeletonCandles {
@@ -80,7 +80,7 @@
   left: 50%;
   width: 2px;
   height: var(--wick-height);
-  background: #b9c8dc;
+  background: rgba(126, 162, 225, 0.5);
   border-radius: 1px;
   transform: translateX(-50%);
 }
@@ -91,13 +91,13 @@
   top: var(--body-top);
   width: min(7px, 74%);
   height: max(2px, var(--body-height));
-  background: #d2deef;
+  background: rgba(96, 142, 228, 0.44);
   border-radius: 2px;
   transform: translateX(-50%);
 }
 
 .chartSkeletonCandle.isBear .chartSkeletonBody {
-  background: #c4d2e6;
+  background: rgba(68, 122, 223, 0.48);
 }
 
 .chartSkeletonTimeAxis {
@@ -114,7 +114,7 @@
 .chartSkeletonTimeAxis span {
   height: 8px;
   border-radius: 4px;
-  background: rgba(209, 221, 239, 0.9);
+  background: rgba(112, 145, 205, 0.42);
 }
 
 @keyframes chartCandlePulse {
@@ -132,4 +132,42 @@
   to {
     transform: translateX(100%);
   }
+}
+
+:global(body[data-theme='light']) .chartSkeleton {
+  background: linear-gradient(180deg, rgba(250, 252, 255, 0.98) 0%, rgba(239, 246, 255, 0.9) 100%);
+}
+
+:global(body[data-theme='light']) .chartSkeleton::after {
+  background: linear-gradient(115deg, transparent 30%, rgba(194, 215, 246, 0.42) 50%, transparent 70%);
+}
+
+:global(body[data-theme='light']) .chartSkeletonGrid {
+  background-image:
+    linear-gradient(to bottom, rgba(154, 181, 226, 0.4) 1px, transparent 1px),
+    linear-gradient(to right, rgba(154, 181, 226, 0.28) 1px, transparent 1px);
+}
+
+:global(body[data-theme='light']) .chartSkeletonPriceAxis {
+  background: rgba(136, 164, 210, 0.48);
+}
+
+:global(body[data-theme='light']) .chartSkeletonPriceLabels span {
+  background: rgba(172, 196, 232, 0.78);
+}
+
+:global(body[data-theme='light']) .chartSkeletonWick {
+  background: rgba(140, 170, 218, 0.62);
+}
+
+:global(body[data-theme='light']) .chartSkeletonBody {
+  background: rgba(160, 188, 229, 0.85);
+}
+
+:global(body[data-theme='light']) .chartSkeletonCandle.isBear .chartSkeletonBody {
+  background: rgba(146, 177, 224, 0.86);
+}
+
+:global(body[data-theme='light']) .chartSkeletonTimeAxis span {
+  background: rgba(172, 196, 232, 0.78);
 }

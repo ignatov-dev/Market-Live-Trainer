@@ -1,16 +1,16 @@
 .report {
   margin-top: 10px;
-  border: 1px solid rgba(154, 173, 203, 0.5);
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
   padding: 12px;
   min-height: 190px;
-  background: #f9fbff;
+  background: var(--surface-1);
 }
 
 .report h3,
 .report h4 {
   margin: 0 0 8px;
-  color: #223753;
+  color: var(--ink);
 }
 
 .report h4 {
@@ -19,7 +19,7 @@
 
 .report p {
   margin: 0 0 9px;
-  color: #364d6d;
+  color: var(--muted);
   line-height: 1.45;
 }
 
@@ -30,10 +30,10 @@
 
 .report li {
   margin: 5px 0;
-  color: #334a69;
+  color: var(--muted);
 }
 
 .empty {
-  color: #64758d;
+  color: var(--muted);
   font-size: 13px;
 }

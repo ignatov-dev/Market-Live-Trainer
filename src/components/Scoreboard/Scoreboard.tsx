@@ -98,7 +98,7 @@ export default function Scoreboard({ authToken }: Props) {
   const isEmpty = status !== 'connecting' && entries.length === 0;
 
   return (
-    <section className="panel scoreboard-panel">
+    <section className={styles.scoreboardPanel}>
       <div className={styles.scoreboard}>
         {isLoading && (
           <div className={styles.loading}>

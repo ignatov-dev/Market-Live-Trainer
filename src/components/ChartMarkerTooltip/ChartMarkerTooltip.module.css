@@ -18,13 +18,13 @@
   margin: 0;
   font-size: 11px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--ink);
 }
 
 .line {
   margin: 4px 0 0;
   font-size: 11px;
-  color: #334155;
+  color: var(--muted);
   line-height: 1.3;
   display: flex;
   align-items: baseline;
@@ -33,14 +33,14 @@
 }
 
 .lineLabel {
-  color: #64748b;
+  color: var(--muted);
   flex: 0 0 auto;
 }
 
 .lineValue {
   flex: 1;
   text-align: right;
-  color: #334155;
+  color: var(--muted);
 }
 
 .entry {
@@ -57,5 +57,5 @@
   margin: 0;
   font-size: 11px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--ink);
 }

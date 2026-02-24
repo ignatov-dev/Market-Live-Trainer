@@ -10,10 +10,10 @@
 }
 
 .toast {
-  border: 1px solid rgba(136, 155, 184, 0.34);
+  border: 1px solid var(--line-strong);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 12px 28px rgba(22, 34, 54, 0.14);
+  background: rgba(10, 16, 29, 0.92);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.36);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   padding: 10px 12px;
@@ -47,14 +47,14 @@
   margin: 6px 0 0;
   font-size: 12px;
   line-height: 1.4;
-  color: #1f2937;
+  color: var(--ink);
 }
 
 .toastClose {
   margin-top: 8px;
   border: 0;
   background: transparent;
-  color: #4b5563;
+  color: var(--muted);
   font-size: 11px;
   font-weight: 600;
   padding: 0;
@@ -62,7 +62,7 @@
 }
 
 .toastClose:hover {
-  color: #111827;
+  color: var(--ink);
 }
 
 @media (max-width: 760px) {

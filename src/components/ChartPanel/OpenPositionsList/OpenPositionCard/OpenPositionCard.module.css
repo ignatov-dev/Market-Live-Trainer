@@ -1,8 +1,8 @@
 .card {
   min-height: 186px;
-  border: 1px solid rgba(154, 173, 203, 0.5);
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
-  background: #f9fbff;
+  background: var(--surface-1);
   padding: 10px 11px;
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -11,7 +11,7 @@
 }
 
 .card:hover {
-  border-color: rgba(106, 138, 184, 0.62);
+  border-color: rgba(90, 142, 230, 0.58);
 }
 
 .cardHead {
@@ -26,7 +26,7 @@
 .cardPair {
   font-size: 11px;
   font-weight: 700;
-  color: #596b84;
+  color: var(--muted);
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
@@ -42,12 +42,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  color: #667790;
+  color: var(--muted);
   font-size: 12px;
 }
 
 .cardValue {
-  color: #223753;
+  color: var(--ink);
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -59,11 +59,11 @@
 }
 
 .metricPos {
-  color: #1b8a63;
+  color: var(--success);
 }
 
 .metricNeg {
-  color: #bb3b51;
+  color: var(--danger);
 }
 
 .cardFoot {
@@ -94,7 +94,7 @@
   margin: 0;
   font-size: 12px;
   min-width: 0;
-  color: #2a6fdb;
+  color: var(--brand);
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
@@ -116,11 +116,11 @@
 }
 
 .isPos .closeBtnFooter {
-  color: #1b8a63;
+  color: var(--success);
 }
 
 .isNeg .closeBtnFooter {
-  color: #bb3b51;
+  color: var(--danger);
 }
 
 .badge {
@@ -135,12 +135,12 @@
 }
 
 .badge.long {
-  color: #1b8a63;
+  color: var(--success);
   border-color: rgba(var(--success-rgb), 0.32);
 }
 
 .badge.short {
-  color: #bb3b51;
+  color: var(--danger);
   border-color: rgba(var(--danger-rgb), 0.34);
 }
 

@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { closeBracketEditor, openBracketEditor } from '../../../store/slices/sessionSlice';
 import PositionBracketEditor from '../../PositionBracketEditor/PositionBracketEditor';
 import { useOpenPositionsController } from '../hooks/useOpenPositionsController';
-import { fmtPrice, fmtNumber, fmtSigned, getPairBaseSymbol } from '../../../utils/formatters';
+import { fmtFixedPrice, fmtNumber, fmtPrice, fmtSigned, getPairBaseSymbol } from '../../../utils/formatters';
 
 export default function OpenPositionsList() {
   const dispatch = useAppDispatch();
@@ -59,7 +59,7 @@ export default function OpenPositionsList() {
               <th>Quantity</th>
               <th>Entry</th>
               <th>Mark</th>
-              <th>PnL (fees)</th>
+              <th>P&L</th>
               <th>TP</th>
               <th>SL</th>
               <th>Action</th>
@@ -89,29 +89,29 @@ export default function OpenPositionsList() {
                 <tr key={position.id}>
                   <td className={position.side === 'long' ? styles.long : styles.short}>{position.side}</td>
                   <td>{qtyLabel}</td>
-                  <td>${fmtPrice(position.entryPrice)}</td>
-                  <td>${fmtPrice(markPrice)}</td>
+                  <td>${fmtFixedPrice(position.entryPrice, 2)}</td>
+                  <td>${fmtFixedPrice(markPrice, 2)}</td>
                   <td className={totalNetEstimated >= 0 ? styles.pos : styles.neg}>
                     {fmtSigned(totalNetEstimated)}
                   </td>
                   <td>
                     <button
                       type="button"
-                      className={styles.bracketBtn}
+                      className={`${styles.bracketBtn} ${position.takeProfit === null ? styles.bracketBtnNeutral : ''}`}
                       onClick={() => handleOpenBracketEditor(position.id)}
                       aria-label={`Configure brackets for position ${position.id}`}
                     >
-                      {position.takeProfit !== null ? `$${fmtPrice(position.takeProfit)}` : '-'}
+                      {position.takeProfit !== null ? `$${fmtPrice(position.takeProfit)}` : 'Setup'}
                     </button>
                   </td>
                   <td>
                     <button
                       type="button"
-                      className={styles.bracketBtn}
+                      className={`${styles.bracketBtn} ${position.stopLoss === null ? styles.bracketBtnNeutral : ''}`}
                       onClick={() => handleOpenBracketEditor(position.id)}
                       aria-label={`Configure brackets for position ${position.id}`}
                     >
-                      {position.stopLoss !== null ? `$${fmtPrice(position.stopLoss)}` : '-'}
+                      {position.stopLoss !== null ? `$${fmtPrice(position.stopLoss)}` : 'Setup'}
                     </button>
                   </td>
                   <td>

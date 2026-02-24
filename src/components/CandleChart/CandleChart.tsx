@@ -36,6 +36,7 @@ interface Props {
   onPanRight: () => void;
   chartMarkerTooltip?: TooltipData | null;
   chartViewSize?: number | null;
+  indicatorOverlay?: React.ReactNode;
 }
 
 export default function CandleChart({
@@ -49,6 +50,7 @@ export default function CandleChart({
   onResetScale,
   onPanRight,
   chartMarkerTooltip,
+  indicatorOverlay,
 }: Props) {
   return (
     <div className={styles.chartStage}>
@@ -59,6 +61,11 @@ export default function CandleChart({
         onMouseLeave={onMouseLeave}
       >
         {isLoading ? <ChartSkeleton /> : <canvas ref={chartRef} aria-label="Live candlestick chart" />}
+        {indicatorOverlay ? (
+          <div className={styles.chartIndicators}>
+            {indicatorOverlay}
+          </div>
+        ) : null}
       </div>
       {hasCustomChartScale || canPanChartRight ? (
         <div className={styles.chartOverlayControls}>

@@ -2,15 +2,20 @@
   margin-top: 14px;
 }
 
+.subpanel h3 {
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
 .listBox {
-  border: 1px solid rgba(154, 173, 203, 0.5);
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
   padding: 8px;
   min-height: 92px;
   max-height: 180px;
   overflow: auto;
   font-size: 13px;
-  background: #f9fbff;
+  background: var(--surface-1);
 }
 
 .listItem {
@@ -18,13 +23,13 @@
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid rgba(177, 196, 224, 0.4);
+  border-bottom: 1px solid var(--line-soft);
   padding: 9px 2px;
   transition: background-color 140ms ease;
 }
 
 .listItem:hover {
-  background: rgba(230, 238, 250, 0.58);
+  background: var(--brand-soft);
 }
 
 .listItem:last-child {
@@ -32,18 +37,18 @@
 }
 
 .listItem small {
-  color: #64758d;
+  color: var(--muted);
 }
 
 .empty {
-  color: #64758d;
+  color: var(--muted);
   font-size: 13px;
 }
 
 .cancelBtn {
-  border: 1px solid rgba(134, 156, 190, 0.5);
-  background: #ffffff;
-  color: #2b4567;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--ink);
   border-radius: 8px;
   padding: 7px 10px;
   font-weight: 600;
@@ -53,6 +58,6 @@
 }
 
 .cancelBtn:hover {
-  border-color: rgba(96, 132, 186, 0.62);
-  background: #f3f7fc;
+  border-color: rgba(110, 158, 248, 0.62);
+  background: var(--surface-1);
 }

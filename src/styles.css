@@ -1,29 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700&display=swap');
+
 :root {
-  --bg-base: #eef3fa;
-  --bg-top: #f6f9fd;
-  --bg-accent: #e4ebf4;
-  --ink: #17253d;
-  --muted: #63728a;
-  --line-soft: rgba(165, 181, 205, 0.36);
-  --line-strong: rgba(122, 144, 178, 0.5);
-  --surface-1: #f9fbff;
-  --surface-2: #ffffff;
-  --brand: #2a6fdb;
-  --brand-strong: #1c54ad;
-  --brand-soft: rgba(42, 111, 219, 0.12);
+  --bg-base: #0a0a0f;
+  --bg-top: #121827;
+  --bg-accent: #1a2336;
+  --ink: #edf3ff;
+  --muted: #93a6c8;
+  --line-soft: rgba(132, 165, 223, 0.2);
+  --line-strong: rgba(150, 187, 250, 0.34);
+  --surface-1: rgba(14, 20, 34, 0.78);
+  --surface-2: rgba(10, 14, 24, 0.88);
+  --brand: #0066ff;
+  --brand-strong: #2d7cff;
+  --brand-soft: rgba(0, 102, 255, 0.2);
   --danger: #bb3b51;
   --danger-soft: rgba(187, 59, 81, 0.14);
-  --success: #1b8a63;
-  --success-soft: rgba(27, 138, 99, 0.14);
-  --danger-rgb: 191, 35, 61;
-  --success-rgb: 16, 129, 81;
+  --success: #00c17a;
+  --success-soft: rgba(0, 193, 122, 0.14);
+  --danger-rgb: 187, 59, 81;
+  --success-rgb: 0, 193, 122;
   --radius-xl: 20px;
   --radius-lg: 14px;
   --radius-md: 10px;
-  --shadow-soft: 0 4px 14px rgba(32, 52, 84, 0.08);
-  --shadow-elevated: 0 8px 20px rgba(31, 50, 82, 0.12);
-  --glow: 0 0 0 2px rgba(42, 111, 219, 0.18);
+  --shadow-soft: 0 20px 45px rgba(0, 0, 0, 0.42);
+  --shadow-elevated: 0 28px 58px rgba(0, 0, 0, 0.5);
+  --glow: 0 0 0 2px rgba(0, 102, 255, 0.26);
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body[data-theme='light'] {
+  --bg-base: #f3f7ff;
+  --bg-top: #eaf1ff;
+  --bg-accent: #dfe9fb;
+  --ink: #13213e;
+  --muted: #62789f;
+  --line-soft: rgba(117, 146, 194, 0.2);
+  --line-strong: rgba(117, 146, 194, 0.32);
+  --surface-1: rgba(255, 255, 255, 0.78);
+  --surface-2: rgba(255, 255, 255, 0.92);
+  --brand: #2563eb;
+  --brand-strong: #1d4ed8;
+  --brand-soft: rgba(37, 99, 235, 0.12);
+  --danger: #bb3b51;
+  --danger-soft: rgba(187, 59, 81, 0.1);
+  --success: #12a36d;
+  --success-soft: rgba(18, 163, 109, 0.12);
+  --danger-rgb: 187, 59, 81;
+  --success-rgb: 18, 163, 109;
+  --shadow-soft: 0 12px 34px rgba(33, 61, 118, 0.12);
+  --shadow-elevated: 0 18px 44px rgba(33, 61, 118, 0.16);
+  --glow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 * {
@@ -44,11 +70,22 @@ body,
 body {
   margin: 0;
   color: var(--ink);
-  font-family: "SF Pro Text", "SF Pro Display", "SF Pro", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   position: relative;
   overflow-x: hidden;
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(0, 102, 255, 0.2) 0%, rgba(0, 102, 255, 0) 50%),
+    radial-gradient(120% 90% at 100% 0%, rgba(0, 193, 122, 0.14) 0%, rgba(0, 193, 122, 0) 52%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-base) 56%);
+}
+
+body[data-theme='light'] {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(37, 99, 235, 0.16) 0%, rgba(37, 99, 235, 0) 52%),
+    radial-gradient(120% 90% at 100% 0%, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0) 56%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-base) 58%);
 }
 
 a {
@@ -57,6 +94,24 @@ a {
 
 .app-shell {
   width: 100vw;
+  position: relative;
+}
+
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(52% 40% at 12% 8%, rgba(0, 102, 255, 0.1) 0%, transparent 100%),
+    radial-gradient(46% 38% at 84% 14%, rgba(0, 193, 122, 0.09) 0%, transparent 100%);
+  z-index: -1;
+}
+
+body[data-theme='light'] .app-shell::before {
+  background:
+    radial-gradient(52% 40% at 12% 8%, rgba(37, 99, 235, 0.08) 0%, transparent 100%),
+    radial-gradient(46% 38% at 84% 14%, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
 }
 
 .hero {
@@ -71,9 +126,9 @@ a {
   left: 0;
   color: rgba(23, 37, 60, 0.9);
   border: 1px solid rgba(166, 183, 208, 0.44);
-  background: linear-gradient(180deg, rgba(245, 249, 254, 0.96) 0%, rgba(239, 245, 252, 0.94) 100%);
+  /* background: linear-gradient(180deg, rgba(245, 249, 254, 0.96) 0%, rgba(239, 245, 252, 0.94) 100%);
   backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px); */
   padding: 24px 100px;
   padding-bottom: 70px;
   overflow: hidden;
@@ -419,8 +474,11 @@ a {
   position: relative;
   min-width: 0;
   border-radius: var(--radius-lg);
-  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(165deg, rgba(20, 28, 46, 0.68) 0%, rgba(12, 16, 28, 0.78) 100%);
   box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(18px) saturate(128%);
+  -webkit-backdrop-filter: blur(18px) saturate(128%);
   padding: 16px;
   transition:
     box-shadow 180ms ease,
@@ -432,7 +490,7 @@ a {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0) 44%);
+  background: linear-gradient(180deg, rgba(202, 223, 255, 0.2) 0%, rgba(202, 223, 255, 0) 44%);
   pointer-events: none;
 }
 
@@ -443,12 +501,20 @@ a {
   line-height: 1.2;
 }
 
+.positions-panel .panel-head h2,
+.logs-panel .panel-head h2,
+.analytics-panel .panel-head h2,
+.news-panel .panel-head h2 {
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
 .panel h3 {
   margin: 0 0 10px;
   font-size: 14px;
   letter-spacing: 0;
   text-transform: none;
-  color: #334761;
+  color: var(--muted);
 }
 
 .chart-panel {
@@ -1671,14 +1737,14 @@ tbody tr:hover {
   margin: 6px 0 0;
   font-size: 12px;
   line-height: 1.4;
-  color: #1f2937;
+  color: var(--ink);
 }
 
 .pattern-toast-close {
   margin-top: 8px;
   border: 0;
   background: transparent;
-  color: #4b5563;
+  color: var(--muted);
   font-size: 11px;
   font-weight: 600;
   padding: 0;
@@ -1686,7 +1752,7 @@ tbody tr:hover {
 }
 
 .pattern-toast-close:hover {
-  color: #111827;
+  color: var(--ink);
 }
 
 ::-webkit-scrollbar {
@@ -1702,6 +1768,260 @@ tbody tr:hover {
 
 ::-webkit-scrollbar-track {
   background: rgba(233, 241, 252, 0.68);
+}
+
+.pill-value,
+.metric-value,
+.open-position-card-value,
+.chart-marker-tooltip-line-value,
+.chart-marker-tooltip-title,
+.chart-marker-tooltip-entry-title,
+.returnPct,
+.session-summary-grid strong,
+td,
+th,
+input,
+select {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.panel-head {
+  border-bottom-color: var(--line-soft);
+}
+
+.chart-wrap,
+.equity-wrap canvas,
+.table-wrap,
+.timeline,
+.news-feed,
+.coach-report,
+.list-box,
+.pattern-toast {
+  border-color: var(--line-strong);
+  background: linear-gradient(170deg, rgba(17, 24, 40, 0.72) 0%, rgba(10, 14, 24, 0.78) 100%);
+  box-shadow: inset 0 1px 0 rgba(183, 211, 255, 0.14);
+}
+
+.chart-skeleton {
+  background: linear-gradient(180deg, rgba(20, 28, 46, 0.7) 0%, rgba(12, 18, 31, 0.8) 100%);
+}
+
+.chart-skeleton-grid {
+  background-image:
+    linear-gradient(to bottom, rgba(122, 157, 216, 0.24) 1px, transparent 1px),
+    linear-gradient(to right, rgba(122, 157, 216, 0.15) 1px, transparent 1px);
+}
+
+.chart-skeleton-price-axis {
+  background: rgba(159, 191, 245, 0.28);
+}
+
+.chart-skeleton-price-labels span,
+.chart-skeleton-time-axis span {
+  background: rgba(125, 156, 212, 0.3);
+}
+
+.chart-skeleton-wick {
+  background: rgba(165, 191, 238, 0.5);
+}
+
+.chart-skeleton-body {
+  background: rgba(147, 179, 238, 0.48);
+}
+
+.chart-skeleton-candle.is-bear .chart-skeleton-body {
+  background: rgba(104, 151, 237, 0.46);
+}
+
+input,
+select {
+  border-color: var(--line-strong);
+  color: var(--ink);
+  background: rgba(12, 18, 31, 0.82);
+}
+
+input::placeholder {
+  color: rgba(151, 171, 206, 0.76);
+}
+
+input:hover,
+select:hover {
+  border-color: rgba(110, 158, 248, 0.62);
+}
+
+.btn.secondary,
+.btn.ghost {
+  background: rgba(17, 24, 40, 0.78);
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.btn.secondary:hover,
+.btn.ghost:hover {
+  background: rgba(24, 32, 54, 0.92);
+  border-color: rgba(106, 153, 245, 0.62);
+}
+
+th {
+  color: rgba(214, 228, 255, 0.9);
+  background: rgba(17, 27, 47, 0.88);
+}
+
+th,
+td,
+.list-item,
+.timeline-item,
+.news-item {
+  border-color: var(--line-soft);
+}
+
+tbody tr:hover,
+.list-item:hover {
+  background: rgba(28, 43, 72, 0.46);
+}
+
+.news-image-wrap {
+  border-color: var(--line-soft);
+  background: rgba(20, 31, 51, 0.5);
+  box-shadow: inset 0 1px 0 rgba(183, 211, 255, 0.12);
+}
+
+.news-link {
+  color: var(--brand);
+}
+
+.news-link:hover {
+  color: var(--brand-strong);
+}
+
+.pattern-toast {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.pattern-toast-close {
+  color: var(--muted);
+}
+
+.pattern-toast-close:hover {
+  color: var(--ink);
+}
+
+body[data-theme='light'] .panel {
+  border-color: rgba(123, 153, 204, 0.3);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.86) 0%, rgba(246, 251, 255, 0.74) 100%);
+  box-shadow: var(--shadow-soft);
+}
+
+body[data-theme='light'] .panel::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 46%);
+}
+
+body[data-theme='light'] .chart-wrap,
+body[data-theme='light'] .equity-wrap canvas,
+body[data-theme='light'] .table-wrap,
+body[data-theme='light'] .timeline,
+body[data-theme='light'] .news-feed,
+body[data-theme='light'] .coach-report,
+body[data-theme='light'] .list-box,
+body[data-theme='light'] .pattern-toast {
+  border-color: var(--line-strong);
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.85) 0%, rgba(246, 251, 255, 0.8) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+body[data-theme='light'] .chart-skeleton {
+  background: linear-gradient(180deg, rgba(249, 252, 255, 0.95) 0%, rgba(237, 244, 255, 0.82) 100%);
+}
+
+body[data-theme='light'] .chart-skeleton-grid {
+  background-image:
+    linear-gradient(to bottom, rgba(171, 192, 227, 0.45) 1px, transparent 1px),
+    linear-gradient(to right, rgba(171, 192, 227, 0.3) 1px, transparent 1px);
+}
+
+body[data-theme='light'] .chart-skeleton-price-axis {
+  background: rgba(144, 171, 217, 0.46);
+}
+
+body[data-theme='light'] .chart-skeleton-price-labels span,
+body[data-theme='light'] .chart-skeleton-time-axis span {
+  background: rgba(177, 196, 227, 0.8);
+}
+
+body[data-theme='light'] .chart-skeleton-wick {
+  background: rgba(144, 171, 217, 0.56);
+}
+
+body[data-theme='light'] .chart-skeleton-body {
+  background: rgba(170, 194, 231, 0.82);
+}
+
+body[data-theme='light'] .chart-skeleton-candle.is-bear .chart-skeleton-body {
+  background: rgba(153, 182, 225, 0.82);
+}
+
+body[data-theme='light'] input,
+body[data-theme='light'] select {
+  border-color: var(--line-strong);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+body[data-theme='light'] input::placeholder {
+  color: rgba(97, 121, 160, 0.72);
+}
+
+body[data-theme='light'] input:hover,
+body[data-theme='light'] select:hover {
+  border-color: rgba(110, 150, 224, 0.64);
+}
+
+body[data-theme='light'] .btn.secondary,
+body[data-theme='light'] .btn.ghost {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(123, 153, 204, 0.36);
+  color: var(--ink);
+}
+
+body[data-theme='light'] .btn.secondary:hover,
+body[data-theme='light'] .btn.ghost:hover {
+  background: rgba(244, 250, 255, 0.95);
+  border-color: rgba(99, 138, 214, 0.56);
+}
+
+body[data-theme='light'] th {
+  color: #2b4268;
+  background: rgba(237, 244, 255, 0.92);
+}
+
+body[data-theme='light'] tbody tr:hover,
+body[data-theme='light'] .list-item:hover {
+  background: rgba(221, 235, 255, 0.6);
+}
+
+body[data-theme='light'] .news-image-wrap {
+  border-color: rgba(147, 173, 215, 0.36);
+  background: rgba(234, 243, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+body[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: rgba(130, 156, 201, 0.62);
+  border: 2px solid rgba(242, 248, 255, 0.84);
+}
+
+body[data-theme='light'] ::-webkit-scrollbar-track {
+  background: rgba(235, 243, 255, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 136, 201, 0.65);
+  border: 2px solid rgba(10, 14, 24, 0.74);
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(13, 19, 33, 0.88);
 }
 
 @media (max-width: 1120px) {

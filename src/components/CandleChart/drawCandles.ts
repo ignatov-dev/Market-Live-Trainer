@@ -10,6 +10,7 @@ import {
   CHART_MARKER_OPEN_FILL,
   CHART_MARKER_OPEN_STROKE,
 } from './chartConstants';
+import { SMA_COLORS, SMA_PERIODS } from '../../constants/indicators';
 import {
   fmtPriceScale,
   candleAxisLabel,
@@ -21,6 +22,7 @@ import {
 } from '../../utils/formatters';
 import { getBucketStartTs } from './utils/candles';
 import type { Candle, LocalPosition, ClosedTrade } from '../../types/domain';
+import type { SmaConfig, SmaPeriod } from '../../constants/indicators';
 
 export interface MarkerHotspotEntry {
   id: string;
@@ -55,6 +57,7 @@ export function drawCandles(
   viewSize: number,
   timeframeId: string,
   pricePrecision = 2,
+  smaConfig: SmaConfig,
   crosshair: ChartCrosshair | null = null,
   markerHotspotsRef: MarkerHotspotsRef | null = null,
 ): void {
@@ -79,11 +82,48 @@ export function drawCandles(
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
 
-  ctx.fillStyle = '#f9fbff';
-  ctx.fillRect(0, 0, width, height);
-
   // Keep all price labels consistent with the live price label.
-  const PRICE_FONT = '10px Avenir Next';
+  const PRICE_FONT = '10px "JetBrains Mono", monospace';
+  const isLightTheme = document.body?.dataset.theme === 'light';
+  const theme = isLightTheme
+    ? {
+        bgTop: 'rgba(250, 252, 255, 0.98)',
+        bgBottom: 'rgba(238, 245, 255, 0.98)',
+        grid: 'rgba(158, 185, 225, 0.32)',
+        axis: 'rgba(139, 169, 214, 0.48)',
+        labelBg: 'rgba(255, 255, 255, 0.94)',
+        labelText: 'rgba(72, 96, 137, 0.9)',
+        axisLabel: 'rgba(82, 107, 148, 0.9)',
+        areaStart: 'rgba(37, 99, 235, 0.24)',
+        areaMid: 'rgba(37, 99, 235, 0.1)',
+        areaEnd: 'rgba(37, 99, 235, 0)',
+        lineStart: 'rgba(18, 163, 109, 0.9)',
+        lineEnd: 'rgba(37, 99, 235, 0.88)',
+        bull: '#12a36d',
+        bear: '#bb3b51',
+      }
+    : {
+        bgTop: 'rgba(20, 30, 49, 0.94)',
+        bgBottom: 'rgba(9, 13, 23, 0.96)',
+        grid: 'rgba(126, 162, 225, 0.2)',
+        axis: 'rgba(143, 178, 239, 0.3)',
+        labelBg: 'rgba(14, 22, 38, 0.92)',
+        labelText: 'rgba(185, 209, 247, 0.88)',
+        axisLabel: 'rgba(185, 209, 247, 0.84)',
+        areaStart: 'rgba(0, 102, 255, 0.34)',
+        areaMid: 'rgba(0, 102, 255, 0.14)',
+        areaEnd: 'rgba(0, 102, 255, 0)',
+        lineStart: 'rgba(0, 193, 122, 0.95)',
+        lineEnd: 'rgba(0, 102, 255, 0.94)',
+        bull: '#00c17a',
+        bear: '#bb3b51',
+      };
+
+  const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+  bgGradient.addColorStop(0, theme.bgTop);
+  bgGradient.addColorStop(1, theme.bgBottom);
+  ctx.fillStyle = bgGradient;
+  ctx.fillRect(0, 0, width, height);
 
   let padding = { top: 20, right: 58, bottom: 52, left: 16 };
   const safeViewSize = Math.max(2, Math.floor(viewSize));
@@ -140,7 +180,7 @@ export function drawCandles(
   const xStep = chartWidth / (visible.length + rightGapSlots);
   const bodyWidth = Math.max(2, xStep * 0.62);
 
-  ctx.strokeStyle = '#e3e8f2';
+  ctx.strokeStyle = theme.grid;
   ctx.lineWidth = 1;
 
   for (let i = 0; i < yTickCount; i += 1) {
@@ -153,7 +193,7 @@ export function drawCandles(
 
   const priceScaleX = width - padding.right;
   const priceScaleTextX = priceScaleX + CHART_PRICE_SCALE_TEXT_RIGHT_INSET;
-  ctx.strokeStyle = '#cfd8e3';
+  ctx.strokeStyle = theme.axis;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(priceScaleX, padding.top);
@@ -170,10 +210,10 @@ export function drawCandles(
     const label = `$${fmtPriceScale(price)}`;
     const labelWidth = ctx.measureText(label).width;
 
-    ctx.fillStyle = 'rgba(249, 251, 255, 0.92)';
+    ctx.fillStyle = theme.labelBg;
     ctx.fillRect(priceScaleTextX - 3, y - 7, labelWidth + 6, 14);
 
-    ctx.fillStyle = '#5f6d82';
+    ctx.fillStyle = theme.labelText;
     ctx.fillText(label, priceScaleTextX, y);
   }
   ctx.textBaseline = 'alphabetic';
@@ -188,7 +228,7 @@ export function drawCandles(
     if (!candle) continue;
     const x = padding.left + index * xStep + xStep / 2;
 
-    ctx.strokeStyle = '#e9edf4';
+    ctx.strokeStyle = theme.grid;
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
     ctx.moveTo(x, axisTop);
@@ -196,14 +236,14 @@ export function drawCandles(
     ctx.stroke();
     ctx.setLineDash([]);
 
-    ctx.strokeStyle = '#cfd8e3';
+    ctx.strokeStyle = theme.axis;
     ctx.beginPath();
     ctx.moveTo(x, axisBottom);
     ctx.lineTo(x, axisBottom + 5);
     ctx.stroke();
 
-    ctx.fillStyle = '#5f6d82';
-    ctx.font = '10px Avenir Next';
+    ctx.fillStyle = theme.axisLabel;
+    ctx.font = PRICE_FONT;
     if (i === 0) {
       ctx.textAlign = 'left';
     } else if (i === tickCount - 1) {
@@ -214,6 +254,32 @@ export function drawCandles(
     ctx.fillText(candleAxisLabel(candle.timestamp), x, axisBottom + 24);
   }
 
+  const closePoints = visible.map((candle, idx) => ({
+    x: padding.left + idx * xStep + xStep / 2,
+    y: yFromPrice(candle.close),
+  }));
+
+  if (closePoints.length >= 2) {
+    const areaGradient = ctx.createLinearGradient(0, padding.top, 0, axisBottom);
+    areaGradient.addColorStop(0, theme.areaStart);
+    areaGradient.addColorStop(0.62, theme.areaMid);
+    areaGradient.addColorStop(1, theme.areaEnd);
+    ctx.beginPath();
+    closePoints.forEach((point, index) => {
+      if (index === 0) {
+        ctx.moveTo(point.x, point.y);
+      } else {
+        ctx.lineTo(point.x, point.y);
+      }
+    });
+    ctx.lineTo(closePoints[closePoints.length - 1]!.x, axisBottom);
+    ctx.lineTo(closePoints[0]!.x, axisBottom);
+    ctx.closePath();
+    ctx.fillStyle = areaGradient;
+    ctx.fill();
+
+  }
+
   visible.forEach((candle, idx) => {
     const x = padding.left + idx * xStep + xStep / 2;
     const openY = yFromPrice(candle.open);
@@ -222,7 +288,7 @@ export function drawCandles(
     const lowY = yFromPrice(candle.low);
 
     const rising = candle.close >= candle.open;
-    ctx.strokeStyle = rising ? '#0f766e' : '#b42318';
+    ctx.strokeStyle = rising ? theme.bull : theme.bear;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(x, highY);
@@ -231,9 +297,48 @@ export function drawCandles(
 
     const bodyTop = Math.min(openY, closeY);
     const bodyHeight = Math.max(1.2, Math.abs(closeY - openY));
-    ctx.fillStyle = rising ? '#12b981' : '#ef4444';
+    ctx.fillStyle = rising ? theme.bull : theme.bear;
     ctx.fillRect(x - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight);
   });
+
+  const drawSmaLine = (period: SmaPeriod) => {
+    if (!smaConfig[period]) {
+      return;
+    }
+    let sum = 0;
+    const points: Array<{ x: number; y: number }> = [];
+    for (let i = 0; i <= replayIndex; i += 1) {
+      const close = Number(candles[i]?.close ?? 0);
+      sum += close;
+      if (i >= period) {
+        sum -= Number(candles[i - period]?.close ?? 0);
+      }
+      if (i >= period - 1 && i >= start) {
+        const value = sum / period;
+        const x = padding.left + (i - start) * xStep + xStep / 2;
+        const y = yFromPrice(value);
+        points.push({ x, y });
+      }
+    }
+    if (points.length < 2) {
+      return;
+    }
+    ctx.save();
+    ctx.strokeStyle = SMA_COLORS[period];
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    points.forEach((point, index) => {
+      if (index === 0) {
+        ctx.moveTo(point.x, point.y);
+      } else {
+        ctx.lineTo(point.x, point.y);
+      }
+    });
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  SMA_PERIODS.forEach((period) => drawSmaLine(period));
 
   const lastActiveCandle = candles[candles.length - 1];
   const lastActivePrice = Number(lastActiveCandle?.close);
@@ -251,7 +356,7 @@ export function drawCandles(
   const activePriceScaleAnchorX = priceScaleX;
 
   ctx.setLineDash([4, 4]);
-  ctx.strokeStyle = '#1d4ed8';
+  ctx.strokeStyle = isLightTheme ? 'rgba(37, 99, 235, 0.78)' : 'rgba(0, 102, 255, 0.88)';
   ctx.beginPath();
   ctx.moveTo(activePriceScaleAnchorX, lastActiveY);
   ctx.lineTo(lastActiveX, lastActiveY);
@@ -367,7 +472,7 @@ export function drawCandles(
       const entryY = Math.max(plotTop, Math.min(plotBottom, yFromPrice(item.price)));
       const markerX = padding.left + ((markerIndex as number) - start) * xStep + xStep / 2;
       ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = item.side === 'long' ? '#15803d' : '#b91c1c';
+      ctx.strokeStyle = item.side === 'long' ? theme.bull : theme.bear;
       ctx.beginPath();
       ctx.moveTo(priceScaleX, entryY);
       ctx.lineTo(markerX, entryY);
@@ -382,9 +487,9 @@ export function drawCandles(
     const chipW = labelWidth + 8;
 
     // Solid (no opacity) side-tinted chip background.
-    ctx.fillStyle = item.side === 'long' ? '#c8e6c9' : '#fee2e2';
+    ctx.fillStyle = item.side === 'long' ? (isLightTheme ? 'rgba(18, 163, 109, 0.16)' : 'rgba(0, 193, 122, 0.2)') : (isLightTheme ? 'rgba(46, 102, 255, 0.16)' : 'rgba(0, 102, 255, 0.2)');
     ctx.fillRect(chipX, chipY, chipW, CHART_SCALE_TAG_HEIGHT);
-    ctx.fillStyle = item.side === 'long' ? '#0f5132' : '#7f1d2d';
+    ctx.fillStyle = item.side === 'long' ? (isLightTheme ? '#0f7f55' : '#00d18a') : (isLightTheme ? '#2454d8' : '#6da8ff');
     ctx.save();
     ctx.textAlign = 'center';
     ctx.fillText(label, chipX + chipW / 2, item.y);
@@ -555,7 +660,7 @@ export function drawCandles(
 
     ctx.save();
     ctx.setLineDash([5, 5]);
-    ctx.strokeStyle = 'rgba(72, 91, 121, 0.62)';
+    ctx.strokeStyle = isLightTheme ? 'rgba(116, 145, 194, 0.76)' : 'rgba(129, 163, 219, 0.72)';
     ctx.lineWidth = 1;
 
     ctx.beginPath();
@@ -576,16 +681,16 @@ export function drawCandles(
     const crosshairLabelWidth = ctx.measureText(crosshairLabel).width;
     const crosshairLabelX = priceScaleTextX - 3;
     const crosshairLabelY = Math.max(plotTop + 8, Math.min(plotBottom - 8, crosshairY));
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
+    ctx.fillStyle = isLightTheme ? 'rgba(255, 255, 255, 0.98)' : 'rgba(12, 18, 31, 0.98)';
     ctx.fillRect(crosshairLabelX, crosshairLabelY - 8, crosshairLabelWidth + 6, 16);
-    ctx.strokeStyle = 'rgba(72, 91, 121, 0.42)';
+    ctx.strokeStyle = isLightTheme ? 'rgba(142, 170, 214, 0.5)' : 'rgba(125, 157, 212, 0.42)';
     ctx.lineWidth = 1;
     ctx.strokeRect(crosshairLabelX, crosshairLabelY - 8, crosshairLabelWidth + 6, 16);
-    ctx.fillStyle = '#334155';
+    ctx.fillStyle = isLightTheme ? 'rgba(43, 69, 108, 0.94)' : 'rgba(221, 234, 255, 0.92)';
     ctx.fillText(crosshairLabel, priceScaleTextX, crosshairLabelY);
 
     if (crosshairCandle) {
-      ctx.font = '11px Avenir Next';
+      ctx.font = '11px "JetBrains Mono", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       const openValue = Number(crosshairCandle.open);
@@ -615,12 +720,14 @@ export function drawCandles(
             )}%`;
       const moveColor =
         moveRaw === null || !Number.isFinite(moveRaw)
-          ? '#2a3446'
+          ? (isLightTheme ? 'rgba(72, 96, 137, 0.9)' : '#2a3446')
           : moveRaw > 0
-            ? '#15803d'
+            ? theme.bull
             : moveRaw < 0
-              ? '#b91c1c'
-              : '#2a3446';
+              ? theme.bear
+              : isLightTheme
+                ? 'rgba(72, 96, 137, 0.9)'
+                : 'rgba(169, 192, 230, 0.92)';
       const ohlcEntries = [
         { label: 'O', value: fmtFixedPrice(crosshairCandle.open, pricePrecision) },
         { label: 'H', value: fmtFixedPrice(crosshairCandle.high, pricePrecision) },
@@ -632,7 +739,7 @@ export function drawCandles(
           color: moveColor,
         },
       ];
-      const ohlcX = padding.left + 0;
+      const ohlcX = padding.left + 6;
       const ohlcY = padding.top + 4;
       const chipPaddingX = 8;
       const chipHeight = 18;
@@ -667,10 +774,10 @@ export function drawCandles(
         ctx.closePath();
       };
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.fillStyle = isLightTheme ? 'rgba(255, 255, 255, 0.94)' : 'rgba(12, 18, 31, 0.92)';
       drawRoundedRect(ohlcX, chipY, totalWidth, chipHeight, 4);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(72, 91, 121, 0.18)';
+      ctx.strokeStyle = isLightTheme ? 'rgba(142, 170, 214, 0.32)' : 'rgba(125, 157, 212, 0.26)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
@@ -680,11 +787,11 @@ export function drawCandles(
         const entry = ohlcEntries[i]!;
         const label = `${entry.label}: ${entry.value}`;
         const chipWidth = chipWidths[i] ?? minChipWidth;
-        ctx.fillStyle = entry.color ?? '#2a3446';
+        ctx.fillStyle = entry.color ?? (isLightTheme ? 'rgba(43, 69, 108, 0.94)' : 'rgba(221, 234, 255, 0.92)');
         ctx.fillText(label, chipX + chipPaddingX, chipCenterY);
         chipX += chipWidth;
         if (i < ohlcEntries.length - 1) {
-          ctx.strokeStyle = 'rgba(72, 91, 121, 0.18)';
+          ctx.strokeStyle = isLightTheme ? 'rgba(142, 170, 214, 0.32)' : 'rgba(125, 157, 212, 0.26)';
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(chipX + dividerWidth / 2, chipY + 3);
@@ -707,14 +814,14 @@ export function drawCandles(
       );
       const timeChipY = axisBottom + 24;
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
+      ctx.fillStyle = isLightTheme ? 'rgba(255, 255, 255, 0.98)' : 'rgba(12, 18, 31, 0.98)';
       ctx.fillRect(
         timeChipCenterX - timeChipHalfWidth,
         timeChipY - 8,
         timeChipWidth,
         16,
       );
-      ctx.strokeStyle = 'rgba(72, 91, 121, 0.42)';
+      ctx.strokeStyle = isLightTheme ? 'rgba(142, 170, 214, 0.5)' : 'rgba(125, 157, 212, 0.42)';
       ctx.lineWidth = 1;
       ctx.strokeRect(
         timeChipCenterX - timeChipHalfWidth,
@@ -722,7 +829,7 @@ export function drawCandles(
         timeChipWidth,
         16,
       );
-      ctx.fillStyle = '#334155';
+      ctx.fillStyle = isLightTheme ? 'rgba(43, 69, 108, 0.94)' : 'rgba(221, 234, 255, 0.92)';
       ctx.fillText(crosshairTimeLabel, timeChipCenterX, timeChipY);
     }
     ctx.textBaseline = 'alphabetic';
@@ -731,14 +838,14 @@ export function drawCandles(
   ctx.font = PRICE_FONT;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(223, 235, 255, 0.98)';
+  ctx.fillStyle = isLightTheme ? 'rgba(37, 99, 235, 0.14)' : 'rgba(0, 102, 255, 0.2)';
   const latestChipX = priceScaleTextX - 4;
   const latestChipW = latestLabelWidth + 8;
   ctx.fillRect(latestChipX, latestLabelY - labelHalfHeight, latestChipW, CHART_SCALE_TAG_HEIGHT);
-  ctx.strokeStyle = 'rgba(29, 78, 216, 0.38)';
+  ctx.strokeStyle = isLightTheme ? 'rgba(37, 99, 235, 0.44)' : 'rgba(0, 102, 255, 0.58)';
   ctx.lineWidth = 1;
   ctx.strokeRect(latestChipX, latestLabelY - labelHalfHeight, latestChipW, CHART_SCALE_TAG_HEIGHT);
-  ctx.fillStyle = '#1e3a8a';
+  ctx.fillStyle = isLightTheme ? '#1d4ed8' : 'rgba(222, 236, 255, 0.95)';
   ctx.fillText(latestLabel, latestChipX + latestChipW / 2, latestLabelY);
   ctx.textBaseline = 'alphabetic';
 }

@@ -1,5 +1,4 @@
 .ticketForm {
-  margin-top: 12px;
   display: grid;
   gap: 10px;
 }
@@ -8,8 +7,40 @@
   display: grid;
   gap: 5px;
   font-size: 12px;
-  color: #60718b;
+  color: var(--muted);
   font-weight: 600;
+}
+
+.ticketForm label input,
+.ticketForm :global(.bracket-field-input) {
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 520;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.ticketForm label input:hover,
+.ticketForm :global(.bracket-field-input):hover {
+  border-color: rgba(137, 170, 226, 0.5);
+}
+
+.ticketForm label input:focus,
+.ticketForm :global(.bracket-field-input):focus {
+  border-color: rgba(110, 160, 238, 0.72);
+}
+
+.ticketForm :global(.bracket-field-input) {
+  padding-right: 132px;
+}
+
+.ticketForm :global(.bracket-field-pnl) {
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .ticketSideActions {
@@ -22,54 +53,123 @@
 .ticketBracketsRow {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .ticketSideBtn {
   appearance: none;
-  border-radius: 8px;
+  border-radius: 10px;
   min-height: 40px;
   padding: 0 12px;
   font-size: 12px;
   font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   cursor: pointer;
   border: 1px solid transparent;
   transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, opacity 160ms ease;
 }
 
 .ticketSideBtn:disabled {
-  opacity: 0.48;
+  opacity: 0.46;
   cursor: not-allowed;
 }
 
 .ticketSideBtnBuy {
-  color: #1b8a63;
+  color: var(--success);
   border-color: rgba(var(--success-rgb), 0.32);
-  background: rgba(var(--success-rgb), 0.08);
+  background: rgba(var(--success-rgb), 0.07);
 }
 
 .ticketSideBtnBuy:hover:not(:disabled) {
-  background: rgba(var(--success-rgb), 0.12);
+  background: rgba(var(--success-rgb), 0.14);
 }
 
 .ticketSideBtnSell {
-  color: #bb3b51;
+  color: var(--danger);
   border-color: rgba(var(--danger-rgb), 0.34);
-  background: rgba(var(--danger-rgb), 0.08);
+  background: rgba(var(--danger-rgb), 0.07);
 }
 
 .ticketSideBtnSell:hover:not(:disabled) {
-  background: rgba(var(--danger-rgb), 0.12);
+  background: rgba(var(--danger-rgb), 0.14);
 }
 
 .ticketTabsRow {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  width: 100%;
+}
+
+.ticketTabsRow :global([role="tablist"]) {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-radius: 12px;
+  background: linear-gradient(170deg, rgba(18, 27, 45, 0.7) 0%, rgba(11, 16, 28, 0.72) 100%);
+  border: 1px solid var(--line-soft);
+  padding: 3px;
+}
+
+.ticketTabsRow :global([role="tablist"]::-webkit-scrollbar) {
+  display: none;
+}
+
+/* Hide animated block indicator to match timeframe nav style (text-led active state). */
+.ticketTabsRow :global([role="tablist"] > span) {
+  display: none;
+}
+
+.ticketTabsRow :global([role="tab"]) {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 9px;
+  padding: 6px 10px;
+  position: relative;
+  z-index: 1;
+  flex: 0 0 50%;
+  max-width: 50%;
+  text-align: center;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.ticketTabsRow :global([role="tab"]:not(:disabled):hover) {
+  color: var(--ink);
+  background: rgba(130, 163, 220, 0.12);
+}
+
+.ticketTabsRow :global([role="tab"][aria-selected="true"]) {
+  color: var(--ink);
+  background: rgba(130, 163, 220, 0.16);
+}
+
+:global(body[data-theme='light']) .ticketTabsRow :global([role="tablist"]) {
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.9) 0%, rgba(245, 250, 255, 0.82) 100%);
+  border-color: rgba(129, 160, 212, 0.24);
+}
+
+:global(body[data-theme='light']) .ticketForm label input,
+:global(body[data-theme='light']) .ticketForm :global(.bracket-field-input) {
+  border-color: rgba(129, 160, 212, 0.3);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .fieldError {
   margin: -2px 0 0;
-  color: #bb3b51;
+  color: var(--danger);
   font-size: 12px;
   line-height: 1.4;
 }

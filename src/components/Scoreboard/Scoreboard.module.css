@@ -5,10 +5,14 @@
   height: 100%;
 }
 
+.scoreboardPanel {
+  height: 100%;
+}
+
 .motivationPhrase {
   margin: 0;
   margin-top: auto;
-  padding-top: 6px;
+  padding: 6px 0;
   font-size: 11px;
   color: var(--muted);
   text-align: center;
@@ -120,7 +124,7 @@
 }
 
 .row.silver {
-  background: linear-gradient(90deg, rgba(176, 196, 222, 0.5) 0%, transparent 100%);
+  background: linear-gradient(90deg, rgba(176, 196, 222, 0.2) 0%, transparent 100%);
   border: 1px solid rgba(176, 196, 222, 0.2);
 }
 
@@ -150,7 +154,7 @@
 .tierBadge.gold      { color: #b8860b; }
 .tierBadge.silver    { color: #607090; }
 .tierBadge.bronze    { color: #8b5e3c; }
-.tierBadge.candidate { color: #64748b; }
+.tierBadge.candidate { color: var(--muted); }
 
 .trophyIcon {
   width: 16px;

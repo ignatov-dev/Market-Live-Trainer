@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import styles from './ChartPanel.module.css';
 import CandleChart from '../CandleChart/CandleChart';
 import MarketStrip from './MarketStrip/MarketStrip';
+import IndicatorStrip from './IndicatorStrip/IndicatorStrip';
 import { PAIRS, TIMEFRAMES } from '../../constants/market';
 import { useChartCanvasController } from '../CandleChart/hooks/useChartCanvasController';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -11,6 +12,7 @@ import {
   setChartEndIndex,
   setChartMarkerTooltip,
   setChartViewSize,
+  toggleSmaPeriod,
   triggerResize,
 } from '../../store/slices/chartSlice';
 import type {
@@ -38,6 +40,7 @@ export default function ChartPanel({
   const chartEndIndex = useAppSelector((s) => s.chart.chartEndIndex);
   const chartMarkerTooltip = useAppSelector((s) => s.chart.chartMarkerTooltip);
   const resizeToken = useAppSelector((s) => s.chart.resizeToken);
+  const smaConfig = useAppSelector((s) => s.chart.smaConfig);
   const currentPairPositions = session.positions.filter((item) => item.pair === pair);
   const currentPairClosedTrades = session.closedTrades.filter((item) => item.pair === pair);
   const handleChartViewSizeChange = useCallback(
@@ -75,6 +78,7 @@ export default function ChartPanel({
     chartMarkerTooltip,
     resizeToken,
     pricePrecision,
+    smaConfig,
     onChartViewSizeChange: handleChartViewSizeChange,
     onChartEndIndexChange: handleChartEndIndexChange,
     onChartMarkerTooltipChange: handleChartMarkerTooltipChange,
@@ -127,7 +131,6 @@ export default function ChartPanel({
       </div>
 
       <MarketStrip candle={currentCandle} />
-
       <CandleChart
         isLoading={isLoadingData}
         chartWrapRef={chartWrapRef}
@@ -139,6 +142,15 @@ export default function ChartPanel({
         onResetScale={resetChartScale}
         onPanRight={panChartRight}
         chartMarkerTooltip={chartMarkerTooltip}
+        indicatorOverlay={(
+          <IndicatorStrip
+            candles={candles}
+            pricePrecision={pricePrecision}
+            smaConfig={smaConfig}
+            isLoading={isLoadingData}
+            onToggleSma={(period) => dispatch(toggleSmaPeriod(period))}
+          />
+        )}
       />
 
     </section>

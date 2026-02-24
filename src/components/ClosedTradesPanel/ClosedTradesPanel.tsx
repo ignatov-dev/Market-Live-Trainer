@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import styles from './ClosedTradesPanel.module.css';
-import { fmtPrice, fmtNumber, fmtSigned, getPairBaseSymbol } from '../../utils/formatters';
+import { fmtFixedPrice, fmtNumber, fmtSigned, getPairBaseSymbol } from '../../utils/formatters';
 import { resolvePairFromBackendSymbol } from '../../utils/trading';
 import { useAppSelector } from '../../store/hooks';
 
@@ -45,7 +45,7 @@ export default function ClosedTradesPanel() {
             </colgroup>
             <thead>
               <tr>
-                <th>Side</th><th>Quantity</th><th>Entry</th><th>Exit</th><th>PnL</th><th>Reason</th><th>Bal. Before</th><th>Bal. After</th>
+                <th>Side</th><th>Quantity</th><th>Entry</th><th>Exit</th><th>P&L</th><th>Reason</th><th>Bal. Before</th><th>Bal. After</th>
               </tr>
             </thead>
             <tbody>
@@ -68,14 +68,14 @@ export default function ClosedTradesPanel() {
                   <tr key={position.id}>
                     <td className={position.side === 'long' ? styles.long : styles.short}>{position.side}</td>
                     <td>{qtyLabel}</td>
-                    <td>${fmtPrice(position.entryPrice)}</td>
-                    <td>{position.closePrice === null ? '-' : `$${fmtPrice(position.closePrice)}`}</td>
+                    <td>${fmtFixedPrice(position.entryPrice, 2)}</td>
+                    <td>{position.closePrice === null ? '-' : `$${fmtFixedPrice(position.closePrice, 2)}`}</td>
                     <td className={pnl === null ? '' : pnl >= 0 ? styles.pos : styles.neg}>
                       {pnl === null ? '-' : fmtSigned(pnl)}
                     </td>
                     <td>{reason}</td>
-                    <td>{balBefore === null ? '-' : `$${fmtPrice(balBefore)}`}</td>
-                    <td>{balAfter === null ? '-' : `$${fmtPrice(balAfter)}`}</td>
+                    <td>{balBefore === null ? '-' : `$${fmtFixedPrice(balBefore, 2)}`}</td>
+                    <td>{balAfter === null ? '-' : `$${fmtFixedPrice(balAfter, 2)}`}</td>
                   </tr>
                 );
               })}

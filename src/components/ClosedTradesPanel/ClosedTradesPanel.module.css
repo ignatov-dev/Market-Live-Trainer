@@ -1,10 +1,10 @@
 .tableWrap {
   margin-top: 10px;
-  border: 1px solid rgba(154, 173, 203, 0.5);
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
   overflow: auto;
   max-height: 280px;
-  background: #f9fbff;
+  background: var(--surface-1);
 }
 
 .table {
@@ -24,29 +24,29 @@
 .colBalAfter  { width: 120px; }
 
 .empty {
-  color: #64758d;
+  color: var(--muted);
   font-size: 13px;
   padding: 10px;
 }
 
 .long {
-  color: #1b8a63;
+  color: var(--success);
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .short {
-  color: #bb3b51;
+  color: var(--danger);
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .pos {
-  color: #1b8a63;
+  color: var(--success);
   font-weight: 700;
 }
 
 .neg {
-  color: #bb3b51;
+  color: var(--danger);
   font-weight: 700;
 }

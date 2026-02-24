@@ -1,0 +1,55 @@
+.strip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  appearance: none;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  padding: 2px 10px;
+  text-align: left;
+  background: var(--surface-1);
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill:hover {
+  border-color: rgba(110, 158, 248, 0.62);
+}
+
+.isActive {
+  box-shadow: 0 0 0 1px rgba(0, 102, 255, 0.34) inset;
+}
+
+
+.label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--surface-2);
+}
+
+.singleLine {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.singleLine.isMuted {
+  color: var(--muted);
+}

@@ -24,12 +24,12 @@
 
 .ticker::before {
   left: 0;
-  background: linear-gradient(to right, rgb(217 226 249) 0%, rgba(10, 27, 51, 0) 100%);
+  background: linear-gradient(to right, rgba(11, 18, 31, 0.94) 0%, rgba(10, 27, 51, 0) 100%);
 }
 
 .ticker::after {
   right: 0;
-  background: linear-gradient(to left, rgba(10, 27, 51, 0.35) 0%, rgba(10, 27, 51, 0) 100%);
+  background: linear-gradient(to left, rgba(11, 18, 31, 0.94) 0%, rgba(10, 27, 51, 0) 100%);
 }
 
 .track {
@@ -49,13 +49,22 @@
   padding: 9px 0;
   font-size: 13px;
   letter-spacing: 0.01em;
-  opacity: 0.95;
+  color: var(--muted);
+  opacity: 1;
 }
 
 .item::before {
   content: "•";
   margin: 0 12px 0 16px;
   opacity: 0.55;
+}
+
+:global(body[data-theme='light']) .ticker::before {
+  background: linear-gradient(to right, rgba(238, 246, 255, 0.95) 0%, rgba(238, 246, 255, 0) 100%);
+}
+
+:global(body[data-theme='light']) .ticker::after {
+  background: linear-gradient(to left, rgba(238, 246, 255, 0.95) 0%, rgba(238, 246, 255, 0) 100%);
 }
 
 @keyframes heroTicker {

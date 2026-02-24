@@ -13,7 +13,7 @@
   width: min(460px, 100%);
   border-radius: 12px;
   border: 1px solid rgba(149, 169, 199, 0.56);
-  background: #ffffff;
+  background: rgba(12, 18, 31, 0.9);
   overflow: hidden;
 }
 
@@ -30,14 +30,14 @@
   margin: 0;
   font-size: 16px;
   font-weight: 620;
-  color: #223753;
+  color: var(--ink);
 }
 
 .closeButton {
   appearance: none;
   border: 1px solid rgba(137, 160, 194, 0.5);
-  background: #ffffff;
-  color: #506380;
+  background: rgba(12, 18, 31, 0.9);
+  color: var(--muted);
   cursor: pointer;
   font-size: 12px;
   line-height: 1;
@@ -49,7 +49,7 @@
 
 .closeButton:hover {
   border-color: rgba(96, 132, 186, 0.62);
-  background: #f4f7fc;
+  background: rgba(19, 28, 46, 0.84);
 }
 
 .body {
