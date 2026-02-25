@@ -8,3 +8,4 @@ dist
 backend/.env
 backend/.env.*
 !backend/.env.example
+.codex

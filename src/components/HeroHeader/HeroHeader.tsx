@@ -84,7 +84,7 @@ export default function HeroHeader({
         <div className={styles.headline}>
           <h1 className={styles.title}>Market Mentor</h1>
           <p className={styles.eyebrow}>
-            Practice Today. Profit Tomorrow.
+            Practice Today. Profit Tomorrow
           </p>
         </div>
           <DemoButton />
